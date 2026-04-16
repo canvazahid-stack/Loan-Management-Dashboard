@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CSRSSL — চক্জয়রাম সঞ্চয় ও ঋণদান সমবায় সমিতি লি.</title>
+<title>CSRSSL — চক্জয়রাম সঞ্চয় ও ঋণদান সমবায় সমিতি লি.</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -56,7 +56,7 @@ header p{font-size:10px;opacity:.75;margin-top:1px}
 main{padding:16px 18px;max-width:1440px;margin:0 auto}
 .ebox{background:var(--dbg);border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;margin-bottom:14px;color:#991b1b;font-size:13px;display:none}
 
-/* TABS */
+/* TABS (Modern 3D Pill Style) */
 .tabs{display:flex;gap:6px;background:#f8fafc;padding:8px;border-radius:14px;border:1px solid var(--border);margin-bottom:20px;flex-wrap:wrap;box-shadow:inset 0 2px 5px rgba(0,0,0,0.03)}
 .tbtn{padding:10px 18px;border-radius:10px;border:1px solid transparent;background:transparent;color:#64748b;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);white-space:nowrap;display:flex;align-items:center;gap:6px}
 .tbtn.active{background:linear-gradient(135deg,var(--primary),var(--pl));color:#fff;box-shadow:0 6px 16px rgba(26,60,110,0.25);border-color:var(--pl);transform:translateY(-2px)}
@@ -201,7 +201,7 @@ tr:hover td{background:#f8fafc}
     <div class="llogo">
       <div class="li">🏦</div>
       <h2>CSRSSL</h2>
-      <p>চক্জয়রাম সঞ্চয় ও ঋণদান সমবায় সমিতি লি.</p>
+      <p>চক্জয়রাম সঞ্চয় ও ঋণদান সমবায় সমিতি লি.</p>
     </div>
     <div class="lf"><label>Username</label><input type="text" id="lu" placeholder="Username" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <div class="lf"><label>Password</label><input type="password" id="lp" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
@@ -232,7 +232,7 @@ tr:hover td{background:#f8fafc}
     <div class="hl">
       <div class="hi">🏦</div>
       <div>
-        <h1>চক্জয়রাম সঞ্চয় ও ঋণদান সমবায় সমিতি লি.</h1>
+        <h1>চক্জয়রাম সঞ্চয় ও ঋণদান সমবায় সমিতি লি.</h1>
         <p>CSRSSL — রেজি নং ১৬৪৫, নজিপুর, পত্নীতলা, নওগাঁ</p>
       </div>
     </div>
@@ -354,12 +354,13 @@ tr:hover td{background:#f8fafc}
           <div class="fitem"><label>সদস্য * (নাম বা ID টাইপ করুন)</label>
             <input type="text" id="ce_member_input" list="ce_member_list" placeholder="খুঁজতে টাইপ করুন..." onchange="fillColl()" oninput="fillColl()">
             <datalist id="ce_member_list"></datalist>
-            <input type="hidden" id="ce_member"> </div>
+            <input type="hidden" id="ce_member"> 
+          </div>
 
           <div class="fitem"><label>Collection Amount *</label><input type="number" id="ce_coll" placeholder="0" oninput="splitColl()" style="font-weight:700;font-size:15px"></div>
-          <div class="fitem"><label>Savings</label><input type="number" id="ce_sav" placeholder="0"></div>
-          <div class="fitem"><label>Principal</label><input type="number" id="ce_pri" placeholder="0"></div>
-          <div class="fitem"><label>Service Charge</label><input type="number" id="ce_sc" placeholder="0"></div>
+          <div class="fitem"><label>Savings (অটো/ম্যানুয়াল)</label><input type="number" id="ce_sav" placeholder="0"></div>
+          <div class="fitem"><label>Principal (অটো/ম্যানুয়াল)</label><input type="number" id="ce_pri" placeholder="0"></div>
+          <div class="fitem"><label>Service Charge (অটো/ম্যানুয়াল)</label><input type="number" id="ce_sc" placeholder="0"></div>
           <div class="fitem full"><label>Remarks</label><input type="text" id="ce_rem" placeholder="ঐচ্ছিক"></div>
         </div>
         <div id="ce_preview" class="info-box" style="display:none"></div>
@@ -396,6 +397,7 @@ tr:hover td{background:#f8fafc}
       <div class="card" style="margin-bottom:14px">
         <div class="st">👥 নতুন সদস্য যোগ</div>
         <div class="fg">
+          <div class="fitem"><label>Member ID (ফাঁকা রাখলে অটো হবে)</label><input type="text" id="me_id" placeholder="ম্যানুয়াল আইডি দিন"></div>
           <div class="fitem"><label>নাম *</label><input type="text" id="me_name" placeholder="পূর্ণ নাম"></div>
           <div class="fitem"><label>পিতা/স্বামী *</label><input type="text" id="me_father" placeholder="নাম"></div>
           <div class="fitem full"><label>ঠিকানা</label><input type="text" id="me_addr" placeholder="গ্রাম, উপজেলা, জেলা"></div>
@@ -591,7 +593,6 @@ function getF(){
   const iCap=num(s["Owner's Initial Capital"]||500000);
   const cash=num(s['NET CASH IN HAND']||s['Net Cash in Hand']||0);
   
-  // শেয়ার ফান্ড ক্যালকুলেশন
   const tShare = m.reduce((x,r)=>x+num(r['Share']),0);
   const tShareRefund = e.filter(r=>(r['Expense Head']||'').trim()==='Share Refund').reduce((x,r)=>x+num(r['Amount']),0);
   const netShare = tShare - tShareRefund;
@@ -645,7 +646,6 @@ function getOD(mem){
   const pct=tLoanWSC>0?Math.min(tColl/tLoanWSC*100,100):0;
   const remInst=parseFloat(Math.max(0,iTerm-paidInstCount).toFixed(2));
 
-  // লোন পুরোপুরি শোধ হয়ে গেলে বকেয়া জিরো হয়ে যাবে
   if (remaining <= 0) {
     odCount = 0;
     odAmt = 0;
@@ -1003,14 +1003,19 @@ function populateMemSelect(){
 }
 
 function fillColl(){
-  const inputVal = document.getElementById('ce_member_input').value;
-  const id = inputVal.split(' — ')[0]; // সদস্য আইডি বের করা
+  const inputEl = document.getElementById('ce_member_input');
+  if(!inputEl) return;
+  const inputVal = inputEl.value;
+  const id = inputVal.split(' — ')[0].trim();
   document.getElementById('ce_member').value = id;
 
   const mem = (D.members||[]).find(m=>String(m['Member ID'])===String(id));
   if(!mem){
     document.getElementById('ce_preview').style.display='none';
-    ['ce_coll','ce_sav','ce_pri','ce_sc'].forEach(i=>document.getElementById(i).value='');
+    ['ce_coll','ce_sav','ce_pri','ce_sc'].forEach(i=>{
+       const el = document.getElementById(i);
+       if(el) el.value='';
+    });
     return;
   }
 
@@ -1018,7 +1023,6 @@ function fillColl(){
   const iTerm = num(mem['Installment Term']) || 100;
   const loan  = num(mem['Loan Amount']) || 0;
   
-  // ফলব্যাক লজিক (যাদের Savings Target নেই, তাদের লোনের ১০% ধরা হবে)
   const savTarget = num(mem['Savings Target']) || (loan * 0.10); 
   const svcTarget = num(mem['Service Charge']) || 0; 
   
@@ -1058,16 +1062,15 @@ function splitColl(){
   const iTerm = num(mem['Installment Term']) || 100;
   const loan = num(mem['Loan Amount']) || 0;
   
-  // ফলব্যাক লজিক
   const savTarget = num(mem['Savings Target']) || (loan * 0.10);
   const svcTarget = num(mem['Service Charge']) || 0;
   
   const savPerInst = Math.round(savTarget / iTerm) || 0;
   const scPerInst  = Math.round(svcTarget / iTerm) || 0;
   
-  const ratio = iAmt > 0 ? coll / iAmt : 1;
+  // অনুপাতিক হিসাব (Proportional Ratio)
+  const ratio = iAmt > 0 ? (coll / iAmt) : 1;
   
-  // Savings এ Collection Amount এর ১০% অটো চলে আসবে (Proportional Ratio)
   const savAmt = Math.round(savPerInst * ratio) || 0;
   const scAmt  = Math.round(scPerInst * ratio) || 0;
   const priAmt = coll - savAmt - scAmt;
@@ -1110,7 +1113,6 @@ async function submitColl(){
     if(!D.collections) D.collections = [];
     D.collections.push(data);
     
-    // ফর্ম ক্লিয়ার
     ['ce_member_input','ce_coll','ce_sav','ce_pri','ce_sc','ce_rem'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('ce_member').value='';
     const pr=document.getElementById('ce_preview');if(pr)pr.style.display='none';
@@ -1204,8 +1206,10 @@ async function submitMem(){
   const savTarget=num(document.getElementById('me_sav_target').value);
   const term=num(document.getElementById('me_term').value)||100;
   const inst=num(document.getElementById('me_inst').value);
+  const memIdInput = document.getElementById('me_id').value.trim();
 
   const data = {
+    'Member ID': memIdInput,
     'Name':name,
     'Father/Husbend':document.getElementById('me_father').value.trim(),
     'Address':document.getElementById('me_addr').value.trim(),
@@ -1231,7 +1235,7 @@ async function submitMem(){
     if(!D.members) D.members = [];
     D.members.push(data);
 
-    ['me_name','me_father','me_addr','me_phone','me_loan','me_svc','me_sav_target','me_inst','me_total'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['me_id','me_name','me_father','me_addr','me_phone','me_loan','me_svc','me_sav_target','me_inst','me_total'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('me_date').value='';
     const pr=document.getElementById('me_preview');if(pr)pr.style.display='none';
     
@@ -1252,7 +1256,7 @@ async function submitFund(){
   if(btn){btn.disabled=false;btn.textContent='✓ Fund Status আপডেট';}
 }
 
-// ── INIT ──
+// ── INIT (Silent Refresh Setup) ──
 checkSess();
 
 setInterval(()=>{
