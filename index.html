@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="bn">
 <head>
@@ -58,7 +56,7 @@ header p{font-size:10px;opacity:.75;margin-top:1px}
 main{padding:16px 18px;max-width:1440px;margin:0 auto}
 .ebox{background:var(--dbg);border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;margin-bottom:14px;color:#991b1b;font-size:13px;display:none}
 
-/* TABS (Modern 3D Pill Style) */
+/* TABS */
 .tabs{display:flex;gap:6px;background:#f8fafc;padding:8px;border-radius:14px;border:1px solid var(--border);margin-bottom:20px;flex-wrap:wrap;box-shadow:inset 0 2px 5px rgba(0,0,0,0.03)}
 .tbtn{padding:10px 18px;border-radius:10px;border:1px solid transparent;background:transparent;color:#64748b;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);white-space:nowrap;display:flex;align-items:center;gap:6px}
 .tbtn.active{background:linear-gradient(135deg,var(--primary),var(--pl));color:#fff;box-shadow:0 6px 16px rgba(26,60,110,0.25);border-color:var(--pl);transform:translateY(-2px)}
@@ -352,11 +350,12 @@ tr:hover td{background:#f8fafc}
         <div class="st">💰 দৈনিক কিস্তি এন্ট্রি</div>
         <div class="fg">
           <div class="fitem"><label>তারিখ *</label><input type="date" id="ce_date"></div>
-          <div class="fitem"><label>সদস্য *</label>
-            <select id="ce_member" onchange="fillColl()">
-              <option value="">-- সদস্য বেছে নিন --</option>
-            </select>
-          </div>
+          
+          <div class="fitem"><label>সদস্য * (নাম বা ID টাইপ করুন)</label>
+            <input type="text" id="ce_member_input" list="ce_member_list" placeholder="খুঁজতে টাইপ করুন..." onchange="fillColl()" oninput="fillColl()">
+            <datalist id="ce_member_list"></datalist>
+            <input type="hidden" id="ce_member"> </div>
+
           <div class="fitem"><label>Collection Amount *</label><input type="number" id="ce_coll" placeholder="0" oninput="splitColl()" style="font-weight:700;font-size:15px"></div>
           <div class="fitem"><label>Savings</label><input type="number" id="ce_sav" placeholder="0"></div>
           <div class="fitem"><label>Principal</label><input type="number" id="ce_pri" placeholder="0"></div>
@@ -380,6 +379,7 @@ tr:hover td{background:#f8fafc}
               <option>Staff Expenses</option>
               <option>Stationery &amp; Printing</option>
               <option>Marketing &amp; Travel</option>
+              <option>Share Refund</option>
               <option>Miscellaneous</option>
             </select>
           </div>
@@ -401,17 +401,18 @@ tr:hover td{background:#f8fafc}
           <div class="fitem full"><label>ঠিকানা</label><input type="text" id="me_addr" placeholder="গ্রাম, উপজেলা, জেলা"></div>
           <div class="fitem"><label>Phone</label><input type="text" id="me_phone" placeholder="01XXXXXXXXX"></div>
           <div class="fitem"><label>Loan গ্রহণের তারিখ *</label><input type="date" id="me_date"></div>
-          <div class="fitem"><label>Loan Amount *</label><input type="number" id="me_loan" placeholder="0" oninput="calcMem()"></div>
-          <div class="fitem"><label>Service Charge</label><input type="number" id="me_svc" placeholder="0" oninput="calcMem()"></div>
+          <div class="fitem"><label>Loan Amount *</label><input type="number" id="me_loan" placeholder="0" oninput="autoCalcLoan()"></div>
+          <div class="fitem"><label>Service Charge (10%)</label><input type="number" id="me_svc" placeholder="0" oninput="calcMem()"></div>
+          <div class="fitem"><label>Savings Target (10%)</label><input type="number" id="me_sav_target" placeholder="0" oninput="calcMem()"></div>
           <div class="fitem"><label>Installment Term (দিন)</label><input type="number" id="me_term" placeholder="100" value="100" oninput="calcMem()"></div>
-          <div class="fitem"><label>Share</label><input type="number" id="me_share" placeholder="100" value="100"></div>
+          <div class="fitem"><label>Share (ভর্তি ফি)</label><input type="number" id="me_share" placeholder="100" value="100"></div>
           <div class="fitem"><label>Admission Fee</label><input type="number" id="me_adm" placeholder="50" value="50"></div>
           <div class="fitem"><label>Passbook Fee</label><input type="number" id="me_pb" placeholder="30" value="30"></div>
           <div class="fitem"><label>Form Fee</label><input type="number" id="me_ff" placeholder="120" value="120"></div>
         </div>
         <div class="fsec">
           <div class="fg">
-            <div class="fitem"><label>Loan + S.Charge (Auto)</label><input type="number" id="me_total" readonly placeholder="Auto"></div>
+            <div class="fitem"><label>Total Payable (Loan + SC + Sav)</label><input type="number" id="me_total" readonly placeholder="Auto"></div>
             <div class="fitem"><label>Installment Amount (Auto)</label><input type="number" id="me_inst" readonly placeholder="Auto"></div>
           </div>
           <div id="me_preview" class="info-box" style="display:none"></div>
@@ -523,7 +524,7 @@ function checkSess(){
   }
 }
 
-// ── DATA LOAD (Silent Refresh Supported) ──
+// ── DATA LOAD ──
 async function loadData(showLoader = false){
   const ld=document.getElementById('loading');
   if(showLoader) ld.style.display='flex';
@@ -543,7 +544,7 @@ async function loadData(showLoader = false){
   if(showLoader) ld.style.display='none';
 }
 
-// ── POST to Apps Script (CORS FIXED) ──
+// ── POST ──
 async function postData(action,data){
   try{
     const r=await fetch(API_URL,{
@@ -589,7 +590,13 @@ function getF(){
   const net=gross-tExp;
   const iCap=num(s["Owner's Initial Capital"]||500000);
   const cash=num(s['NET CASH IN HAND']||s['Net Cash in Hand']||0);
-  return{m,c,e,s,tAdm,tPb,tFf,tSC,tSav,tPri,tCol,tExp,tLoan,outstanding:tLoan-tPri,gross,net,iCap,cash};
+  
+  // শেয়ার ফান্ড ক্যালকুলেশন
+  const tShare = m.reduce((x,r)=>x+num(r['Share']),0);
+  const tShareRefund = e.filter(r=>(r['Expense Head']||'').trim()==='Share Refund').reduce((x,r)=>x+num(r['Amount']),0);
+  const netShare = tShare - tShareRefund;
+
+  return{m,c,e,s,tAdm,tPb,tFf,tSC,tSav,tPri,tCol,tExp,tLoan,outstanding:tLoan-tPri,gross,net,iCap,cash,netShare};
 }
 
 // ── OVERDUE ──
@@ -603,9 +610,9 @@ function getOD(mem){
   const tSav=mc.reduce((s,r)=>s+num(r['Savings']),0);
   const tSC=mc.reduce((s,r)=>s+num(r['Service Charge']),0);
   const tLoan=num(mem['Loan Amount']);
-  const tLoanWSC=num(mem['Total Loan Payable']||mem['Loan Amount With Service Charge']||tLoan);
   
-  // টাকার পরিমাণ অনুযায়ী কিস্তির হিসাব
+  const tLoanWSC=num(mem['Total Loan Payable']) || (tLoan + num(mem['Service Charge']) + num(mem['Savings Target']||0));
+  
   const paidInstCount = iAmt > 0 ? (tSav + tPri + tSC) / iAmt : 0;
   const pCnt = parseFloat(paidInstCount.toFixed(2));
   const txCount = mc.length; 
@@ -613,6 +620,7 @@ function getOD(mem){
   let odCount=num(mem['Due / Overdue Installments']||0);
   let odAmt=num(mem['Overdue Amount']||0);
   let endDate=null;
+  
   if(mem['End Installment Date']){
     endDate=mem['End Installment Date'];
   }else if(lDate){
@@ -634,8 +642,14 @@ function getOD(mem){
   }
 
   const remaining=Math.max(0,tLoanWSC-tColl);
-  const pct=tLoan>0?Math.min(tPri/tLoan*100,100):0;
+  const pct=tLoanWSC>0?Math.min(tColl/tLoanWSC*100,100):0;
   const remInst=parseFloat(Math.max(0,iTerm-paidInstCount).toFixed(2));
+
+  // লোন পুরোপুরি শোধ হয়ে গেলে বকেয়া জিরো হয়ে যাবে
+  if (remaining <= 0) {
+    odCount = 0;
+    odAmt = 0;
+  }
 
   return{odCount,odAmt,remaining,pct,pCnt,txCount,tPri,tColl,tSav,tSC,tLoan,tLoanWSC,iAmt,iTerm,endDate,mc,remInst};
 }
@@ -684,7 +698,7 @@ function renderOv(){
     return `<div style="margin-bottom:11px">
       <div style="display:flex;justify-content:space-between;margin-bottom:3px">
         <span style="font-size:13px;font-weight:600;cursor:pointer;color:var(--pl)" onclick="openMemModal('${m['Member ID']}')">${m.Name||'—'}</span>
-        <span style="font-size:11px;color:var(--muted)">${cur(od.tPri)} / ${cur(od.tLoan)}</span>
+        <span style="font-size:11px;color:var(--muted)">${cur(od.tColl)} / ${cur(od.tLoanWSC)}</span>
       </div>
       <div class="pg"><div class="pgf" style="width:${od.pct.toFixed(1)}%;background:${clr}"></div></div>
       <div style="font-size:10px;color:var(--muted);margin-top:1px;display:flex;justify-content:space-between">
@@ -746,10 +760,9 @@ function renderMem(){
   document.getElementById('mTable').innerHTML=rows.length?rows.map(r=>{
     const od=getOD(r);
     
-    // Loan Status check
     const sheetStatus = r['Loan Status'] || '';
     let st = '';
-    if(sheetStatus === 'Completed') {
+    if(sheetStatus === 'Completed' || od.remaining <= 0) {
         st = '<span class="badge bg">✓ Completed</span>';
     } else if(sheetStatus === 'Running') {
         st = '<span class="badge bi">▶ Running</span>';
@@ -803,10 +816,9 @@ function openMemModal(id){
   const od=getOD(mem);
   const pc=od.pct>=100?'#059669':od.pct>50?'#2563ab':'#d97706';
 
-  // Loan Status for Modal
   const sheetStatus = mem['Loan Status'] || '';
   let stBadge = '';
-  if(sheetStatus === 'Completed') {
+  if(sheetStatus === 'Completed' || od.remaining <= 0) {
       stBadge = '<span style="color:var(--accent);font-weight:800">✓ Completed</span>';
   } else if(sheetStatus === 'Running') {
       stBadge = '<span style="color:var(--info);font-weight:800">▶ Running</span>';
@@ -877,8 +889,9 @@ function openEditModal(id){
       <div class="fitem"><label>Phone</label><input type="text" id="em_phone" value="${mem.Phone||''}"></div>
       <div class="fitem"><label>Loan Amount</label><input type="number" id="em_loan" value="${num(mem['Loan Amount'])||''}"></div>
       <div class="fitem"><label>Service Charge</label><input type="number" id="em_svc" value="${num(mem['Service Charge'])||''}"></div>
-      <div class="fitem"><label>Installment Amount</label><input type="number" id="em_inst" value="${num(mem['Installment Amount'])||''}"></div>
+      <div class="fitem"><label>Savings Target</label><input type="number" id="em_sav_target" value="${num(mem['Savings Target'])||''}"></div>
       <div class="fitem"><label>Installment Term</label><input type="number" id="em_term" value="${num(mem['Installment Term'])||100}"></div>
+      <div class="fitem"><label>Installment Amount</label><input type="number" id="em_inst" value="${num(mem['Installment Amount'])||''}"></div>
       <div class="fitem"><label>Share</label><input type="number" id="em_share" value="${num(mem.Share)||100}"></div>
       <div class="fitem"><label>Admission Fee</label><input type="number" id="em_adm" value="${num(mem['Admission Fee'])||50}"></div>
       <div class="fitem"><label>Passbook Fee</label><input type="number" id="em_pb" value="${num(mem['Passbook Fee'])||30}"></div>
@@ -904,6 +917,7 @@ async function submitEdit(memberId){
     'Phone':document.getElementById('em_phone').value.trim(),
     'Loan Amount':num(document.getElementById('em_loan').value),
     'Service Charge':num(document.getElementById('em_svc').value),
+    'Savings Target':num(document.getElementById('em_sav_target').value),
     'Installment Amount':num(document.getElementById('em_inst').value),
     'Installment Term':num(document.getElementById('em_term').value),
     'Share':num(document.getElementById('em_share').value),
@@ -944,7 +958,7 @@ function renderFund(){
     {i:'📥',v:F.tPri,l:'Principal Recovered',c:'#059669'},
     {i:'⚖️',v:F.outstanding,l:'Outstanding (Field)',c:'#d97706'},
     {i:'💰',v:F.tSav,l:'Net Savings',c:'#0891b2'},
-    {i:'⚡',v:F.tSC,l:'Service Charge',c:'#0f766e'},
+    {i:'🤝',v:F.netShare,l:'Net Share Capital',c:'#0e7490'},
     {i:'📉',v:F.tExp,l:'Total Expenses',c:'#dc2626'},
     {i:'💵',v:F.cash,l:'NET CASH IN HAND',c:'#16a34a'},
   ].map(k=>`<div class="kc" style="--kc:${k.c}"><span class="ki">${k.i}</span><div class="kv">${cur(k.v)}</div><div class="kl">${k.l}</div></div>`).join('');
@@ -963,8 +977,8 @@ function renderPL(){
   const iItems=[{l:'Service Charge',v:F.tSC,n:'Daily Collection'},{l:'Admission Fees',v:F.tAdm,n:'Member_Master'},{l:'Passbook Fees',v:F.tPb,n:'Member_Master'},{l:'Form Fees',v:F.tFf,n:'Member_Master'}];
   document.getElementById('plInc').innerHTML=iItems.map(i=>`<div class="plr"><div><div style="font-size:13px">${i.l}</div><div style="font-size:11px;color:var(--muted)">${i.n}</div></div><span style="color:var(--accent);font-weight:700">${cur(i.v)}</span></div>`).join('')+`<div class="plt" style="color:#16a34a"><span>Total Gross Income</span><span>${cur(F.gross)}</span></div>`;
   const cats={};(D.expenses||[]).forEach(r=>{const k=r['Expense Head']||'Other';cats[k]=(cats[k]||0)+num(r['Amount']);});
+  const maxC=Math.max(...Object.values(cats),1);const colors=['#2563ab','#059669','#d97706','#7c3aed','#dc2626','#0891b2'];
   const catE=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
-  const colors=['#2563ab','#059669','#d97706','#7c3aed','#dc2626','#0891b2'];
   document.getElementById('plExpS').innerHTML=(catE.length?catE.map(([k,v],i)=>`<div class="plr"><span style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:${colors[i%colors.length]};flex-shrink:0;display:inline-block"></span>${k}</span><span class="red">${cur(v)}</span></div>`).join(''):'<div class="plr">কোনো expense নেই</div>')+`<div class="plt" style="color:var(--danger)"><span>Total Expenses</span><span>${cur(F.tExp)}</span></div>`;
   const isPro=F.net>=0;
   document.getElementById('plNet').innerHTML=`<div class="plr"><span>Gross Income</span><span style="color:var(--accent);font-weight:700">${cur(F.gross)}</span></div><div class="plr"><span>Total Expenses</span><span class="red">${cur(F.tExp)}</span></div><hr class="divr"><div style="text-align:center;padding:16px 0"><div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">NET PROFIT</div><div style="font-size:34px;font-weight:900;color:${isPro?'#16a34a':'var(--danger)'}">${cur(Math.abs(F.net))}</div><div style="margin-top:5px"><span class="badge ${isPro?'bg':'br'}">${isPro?'▲ Profit':'▼ Loss'}</span></div></div><hr class="divr"><div class="plr"><span style="font-size:12px;color:var(--muted)">মোট সদস্য</span><span style="font-size:12px">${F.m.length} জন</span></div><div class="plr"><span style="font-size:12px;color:var(--muted)">মোট Loan বিতরণ</span><span style="font-size:12px">${cur(F.tLoan)}</span></div><div class="plr"><span style="font-size:12px;color:var(--muted)">Outstanding</span><span style="font-size:12px;color:var(--warn)">${cur(F.outstanding)}</span></div><div class="plr"><span style="font-size:12px;color:var(--muted)">Cash in Hand</span><span style="font-size:12px;font-weight:700;color:#0f766e">${cur(F.cash)}</span></div>`;
@@ -977,25 +991,23 @@ function renderPL(){
 
 // ══ ENTRY FUNCTIONS ══
 
-// Member dropdown populate
 function populateMemSelect(){
-  const sel=document.getElementById('ce_member');
-  if(!sel)return;
-  const cur_val=sel.value;
-  sel.innerHTML='<option value="">-- সদস্য বেছে নিন --</option>';
+  const dl = document.getElementById('ce_member_list');
+  if(!dl) return;
+  dl.innerHTML = '';
   (D.members||[]).forEach(m=>{
-    const o=document.createElement('option');
-    o.value=m['Member ID'];
-    o.textContent=`${m['Member ID']} — ${m.Name||''}`;
-    sel.appendChild(o);
+    const o = document.createElement('option');
+    o.value = `${m['Member ID']} — ${m.Name||''}`;
+    dl.appendChild(o);
   });
-  if(cur_val)sel.value=cur_val;
 }
 
-// সদস্য select → auto fill
 function fillColl(){
-  const id=document.getElementById('ce_member').value;
-  const mem=(D.members||[]).find(m=>String(m['Member ID'])===String(id));
+  const inputVal = document.getElementById('ce_member_input').value;
+  const id = inputVal.split(' — ')[0]; // সদস্য আইডি বের করা
+  document.getElementById('ce_member').value = id;
+
+  const mem = (D.members||[]).find(m=>String(m['Member ID'])===String(id));
   if(!mem){
     document.getElementById('ce_preview').style.display='none';
     ['ce_coll','ce_sav','ce_pri','ce_sc'].forEach(i=>document.getElementById(i).value='');
@@ -1003,42 +1015,22 @@ function fillColl(){
   }
 
   const iAmt  = num(mem['Installment Amount']); 
-  const share = num(mem['Share']) || 0;         
-  const tLoan = num(mem['Total Loan Payable']) || num(mem['Loan Amount With Service Charge']) || num(mem['Loan Amount']);
   const iTerm = num(mem['Installment Term']) || 100;
-
-  const loanAmt = num(mem['Loan Amount']);
-  const svcTotal = num(mem['Service Charge']) || (tLoan - loanAmt);
+  const loan  = num(mem['Loan Amount']) || 0;
   
-  const savPerInst = Math.round(share / iTerm) || 0;
-  const scPerInst  = Math.round(svcTotal / iTerm) || 0;
+  // ফলব্যাক লজিক (যাদের Savings Target নেই, তাদের লোনের ১০% ধরা হবে)
+  const savTarget = num(mem['Savings Target']) || (loan * 0.10); 
+  const svcTarget = num(mem['Service Charge']) || 0; 
+  
+  const savPerInst = Math.round(savTarget / iTerm) || 0;
+  const scPerInst  = Math.round(svcTarget / iTerm) || 0;
   const priPerInst = iAmt - savPerInst - scPerInst;
 
-  const mc=(D.collections||[]).filter(r=>String(r['Member ID'])===String(id));
-  if(mc.length>0){
-    const last=mc[mc.length-1];
-    const lSav = num(last['Savings']);
-    const lPri = num(last['Principal']);
-    const lSC  = num(last['Service Charge']);
-    const lColl= num(last['Collection Amount']);
-    
-    if(lColl === iAmt || (lSav+lPri+lSC) > 0){
-      document.getElementById('ce_coll').value = iAmt;
-      document.getElementById('ce_sav').value  = lSav || savPerInst;
-      document.getElementById('ce_pri').value  = lPri || Math.max(0, priPerInst);
-      document.getElementById('ce_sc').value   = lSC  || scPerInst;
-    } else {
-      document.getElementById('ce_coll').value = iAmt;
-      document.getElementById('ce_sav').value  = savPerInst;
-      document.getElementById('ce_sc').value   = scPerInst;
-      document.getElementById('ce_pri').value  = Math.max(0, priPerInst);
-    }
-  } else {
-    document.getElementById('ce_coll').value = iAmt;
-    document.getElementById('ce_sav').value  = savPerInst;
-    document.getElementById('ce_sc').value   = scPerInst;
-    document.getElementById('ce_pri').value  = Math.max(0, priPerInst);
-  }
+  document.getElementById('ce_coll').value = iAmt || '';
+  document.getElementById('ce_sav').value  = savPerInst || 0;
+  document.getElementById('ce_sc').value   = scPerInst || 0;
+  document.getElementById('ce_pri').value  = Math.max(0, priPerInst) || 0;
+  
   showCollPreview(mem);
 }
 
@@ -1052,23 +1044,37 @@ function showCollPreview(mem){
 }
 
 function splitColl(){
-  const id=document.getElementById('ce_member').value;
-  const mem=(D.members||[]).find(m=>String(m['Member ID'])===String(id));
-  if(!mem)return;
-  const coll=num(document.getElementById('ce_coll').value);
-  if(!coll)return;
-  const iAmt=num(mem['Installment Amount']);
-  const share=num(mem['Share'])||0;
-  const iTerm=num(mem['Installment Term'])||100;
-  const tLoan=num(mem['Total Loan Payable'])||num(mem['Loan Amount With Service Charge'])||num(mem['Loan Amount']);
-  const svcTotal=num(mem['Service Charge'])||(tLoan-num(mem['Loan Amount']));
-  const savPerInst=Math.round(share/iTerm)||0;
-  const scPerInst=Math.round(svcTotal/iTerm)||0;
+  const id = document.getElementById('ce_member').value;
+  const mem = (D.members||[]).find(m=>String(m['Member ID'])===String(id));
+  if(!mem) return;
   
-  const ratio=iAmt>0?coll/iAmt:1;
-  document.getElementById('ce_sav').value=Math.round(savPerInst*ratio)||0;
-  document.getElementById('ce_sc').value=Math.round(scPerInst*ratio)||0;
-  document.getElementById('ce_pri').value=Math.max(0,Math.round((coll-savPerInst*ratio-scPerInst*ratio)))||0;
+  const coll = num(document.getElementById('ce_coll').value);
+  if(!coll) {
+      ['ce_sav','ce_pri','ce_sc'].forEach(i=>document.getElementById(i).value='');
+      return;
+  }
+  
+  const iAmt = num(mem['Installment Amount']) || coll;
+  const iTerm = num(mem['Installment Term']) || 100;
+  const loan = num(mem['Loan Amount']) || 0;
+  
+  // ফলব্যাক লজিক
+  const savTarget = num(mem['Savings Target']) || (loan * 0.10);
+  const svcTarget = num(mem['Service Charge']) || 0;
+  
+  const savPerInst = Math.round(savTarget / iTerm) || 0;
+  const scPerInst  = Math.round(svcTarget / iTerm) || 0;
+  
+  const ratio = iAmt > 0 ? coll / iAmt : 1;
+  
+  // Savings এ Collection Amount এর ১০% অটো চলে আসবে (Proportional Ratio)
+  const savAmt = Math.round(savPerInst * ratio) || 0;
+  const scAmt  = Math.round(scPerInst * ratio) || 0;
+  const priAmt = coll - savAmt - scAmt;
+  
+  document.getElementById('ce_sav').value = savAmt || 0;
+  document.getElementById('ce_sc').value  = scAmt || 0;
+  document.getElementById('ce_pri').value = Math.max(0, priAmt) || 0;
 }
 
 // ── FAST SUBMIT LOGIC ──
@@ -1101,17 +1107,16 @@ async function submitColl(){
   showMsg('ce_msg',res.success,res.message||'Error');
   
   if(res.success){
-    // Optimistic UI Update
     if(!D.collections) D.collections = [];
     D.collections.push(data);
     
-    // Clear form instantly
-    ['ce_coll','ce_sav','ce_pri','ce_sc','ce_rem'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    // ফর্ম ক্লিয়ার
+    ['ce_member_input','ce_coll','ce_sav','ce_pri','ce_sc','ce_rem'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('ce_member').value='';
     const pr=document.getElementById('ce_preview');if(pr)pr.style.display='none';
     
     renderOv(); renderColl(); renderDate(); renderFund();
-    setTimeout(() => { loadData(false); }, 2000); // Silent refresh
+    setTimeout(() => { loadData(false); }, 2000); 
   }
   if(btn){btn.disabled=false;btn.textContent='✓ কিস্তি সংরক্ষণ করুন';}
 }
@@ -1148,20 +1153,39 @@ async function submitExp(){
   if(btn){btn.disabled=false;btn.textContent='✓ Expense সংরক্ষণ';}
 }
 
+function autoCalcLoan() {
+  const loan = num(document.getElementById('me_loan').value);
+  if(loan > 0) {
+      document.getElementById('me_svc').value = loan * 0.10; 
+      document.getElementById('me_sav_target').value = loan * 0.10; 
+  } else {
+      document.getElementById('me_svc').value = '';
+      document.getElementById('me_sav_target').value = '';
+  }
+  calcMem();
+}
+
 function calcMem(){
   const loan=num(document.getElementById('me_loan').value)||0;
   const svc=num(document.getElementById('me_svc').value)||0;
+  const savTarget=num(document.getElementById('me_sav_target').value)||0;
   const term=num(document.getElementById('me_term').value)||100;
-  const total=loan+svc;
-  document.getElementById('me_total').value=total||'';
-  const share=num(document.getElementById('me_share').value)||100;
-  const savPerInst=Math.round(share/10)||10;
-  if(term>0)document.getElementById('me_inst').value=Math.ceil(total/term+savPerInst)||'';
+  
+  const total = loan + svc + savTarget;
+  document.getElementById('me_total').value = total || '';
+  
+  if(term > 0 && total > 0){
+    document.getElementById('me_inst').value = Math.ceil(total / term);
+  } else {
+    document.getElementById('me_inst').value = '';
+  }
   
   const el=document.getElementById('me_preview');
   if(el&&loan>0){
     el.style.display='block';
-    el.innerHTML=`Loan: ${cur(loan)} | Service Charge: ${cur(svc)} | মোট: ${cur(total)} | ${term} কিস্তিতে পরিশোধ`;
+    el.innerHTML=`Loan: ${cur(loan)} | S.Charge: ${cur(svc)} | Savings: ${cur(savTarget)} | মোট: ${cur(total)} | ${term} কিস্তিতে পরিশোধ`;
+  } else if (el) {
+    el.style.display='none';
   }
 }
 
@@ -1177,6 +1201,7 @@ async function submitMem(){
   if(btn){btn.disabled=true;btn.textContent='সংরক্ষণ হচ্ছে...';}
 
   const svc=num(document.getElementById('me_svc').value);
+  const savTarget=num(document.getElementById('me_sav_target').value);
   const term=num(document.getElementById('me_term').value)||100;
   const inst=num(document.getElementById('me_inst').value);
 
@@ -1192,7 +1217,8 @@ async function submitMem(){
     'Passbook Fee':num(document.getElementById('me_pb').value)||30,
     'Form Fee':num(document.getElementById('me_ff').value)||120,
     'Service Charge':svc,
-    'Total Loan Payable':loan+svc,
+    'Savings Target':savTarget, 
+    'Total Loan Payable':loan + svc + savTarget,
     'Installment Term':term,
     'Installment Amount':inst
   };
@@ -1205,7 +1231,7 @@ async function submitMem(){
     if(!D.members) D.members = [];
     D.members.push(data);
 
-    ['me_name','me_father','me_addr','me_phone','me_loan','me_svc','me_inst','me_total'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['me_name','me_father','me_addr','me_phone','me_loan','me_svc','me_sav_target','me_inst','me_total'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('me_date').value='';
     const pr=document.getElementById('me_preview');if(pr)pr.style.display='none';
     
@@ -1226,10 +1252,9 @@ async function submitFund(){
   if(btn){btn.disabled=false;btn.textContent='✓ Fund Status আপডেট';}
 }
 
-// ── INIT (Silent Refresh Setup) ──
+// ── INIT ──
 checkSess();
 
-// প্রতি ৫ মিনিট পর পর ব্যাকগ্রাউন্ডে আপডেট হবে, কিন্তু স্ক্রিনে কোনো লোডিং বা স্পিনার দেখাবে না (loadData(false))
 setInterval(()=>{
   if(sessionStorage.getItem(SK)) {
     loadData(false); 
