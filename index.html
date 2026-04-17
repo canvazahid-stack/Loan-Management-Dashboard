@@ -186,20 +186,14 @@ tr:hover td{background:#f8fafc}
 .plt{font-size:14px;font-weight:800;padding:10px;background:var(--bg);border-radius:8px;margin-top:8px;display:flex;justify-content:space-between}
 .divr{border:none;border-top:1px solid var(--border);margin:12px 0}
 
-/* HELPERS */
-.green{color:var(--accent);font-weight:600}
-.red{color:var(--danger);font-weight:600}
-.orange{color:var(--warn);font-weight:600}
-.bold{font-weight:700}
-.nd{text-align:center;padding:28px;color:var(--muted);font-size:14px}
-
 /* PRINT STYLES */
+.printHeader { display: none; }
 @media print {
   body { background: #fff !important; color: #000 !important; font-size: 12px; }
   header, .tabs, .no-print, .sb, .hb, .ubadge, #loginPage { display: none !important; }
-  .rpt-print-header { display: block !important; text-align: center; margin-bottom: 20px; }
-  .rpt-print-header h2 { font-size: 22px; color: #000; margin-bottom:4px; }
-  .rpt-print-header p { font-size: 13px; color: #444; }
+  .printHeader, .rpt-print-header { display: block !important; text-align: center; margin-bottom: 20px; }
+  .printHeader h2, .rpt-print-header h2 { font-size: 22px; color: #000; margin-bottom:4px; }
+  .printHeader p, .rpt-print-header p { font-size: 13px; color: #444; }
   .card { border: 1px solid #ddd !important; box-shadow: none !important; margin-bottom: 15px !important; padding: 10px !important; page-break-inside: avoid; }
   main { padding: 0 !important; max-width: 100% !important; }
   .tab-panel { display: none !important; }
@@ -363,15 +357,41 @@ tr:hover td{background:#f8fafc}
           </div>
 
           <div class="fitem"><label>Collection Amount *</label><input type="number" id="ce_coll" placeholder="0" oninput="splitColl()" style="font-weight:700;font-size:15px"></div>
-          <div class="fitem"><label>Savings (অটো/ম্যানুয়াল)</label><input type="number" id="ce_sav" placeholder="0"></div>
-          <div class="fitem"><label>Principal (অটো/ম্যানুয়াল)</label><input type="number" id="ce_pri" placeholder="0"></div>
-          <div class="fitem"><label>Service Charge (অটো/ম্যানুয়াল)</label><input type="number" id="ce_sc" placeholder="0"></div>
+          <div class="fitem"><label>Savings</label><input type="number" id="ce_sav" placeholder="0"></div>
+          <div class="fitem"><label>Principal</label><input type="number" id="ce_pri" placeholder="0"></div>
+          <div class="fitem"><label>Service Charge</label><input type="number" id="ce_sc" placeholder="0"></div>
           <div class="fitem full"><label>Remarks</label><input type="text" id="ce_rem" placeholder="ঐচ্ছিক"></div>
         </div>
         <div id="ce_preview" class="info-box" style="display:none"></div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <button class="fbtn primary" onclick="submitColl()">✓ কিস্তি সংরক্ষণ করুন</button>
           <span class="fmsg" id="ce_msg"></span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="st">🔄 সঞ্চয় উত্তোলন / লোন সমন্বয়</div>
+        <div class="fg">
+          <div class="fitem"><label>তারিখ *</label><input type="date" id="sa_date"></div>
+          
+          <div class="fitem"><label>সদস্য * (নাম বা ID টাইপ করুন)</label>
+            <input type="text" id="sa_member_input" list="ce_member_list" placeholder="খুঁজতে টাইপ করুন..." onchange="fillSavAdj()" oninput="fillSavAdj()">
+            <input type="hidden" id="sa_member"> 
+          </div>
+
+          <div class="fitem"><label>ধরণ *</label>
+            <select id="sa_type" onchange="fillSavAdj()">
+              <option value="withdrawal">সঞ্চয় উত্তোলন (ক্যাশ আউট)</option>
+              <option value="adjustment">লোন সমন্বয় (সঞ্চয় দিয়ে লোন শোধ)</option>
+            </select>
+          </div>
+          <div class="fitem"><label>পরিমাণ *</label><input type="number" id="sa_amt" placeholder="0" style="font-weight:700;font-size:15px;color:var(--danger)"></div>
+          <div class="fitem full"><label>Remarks</label><input type="text" id="sa_rem" placeholder="ঐচ্ছিক"></div>
+        </div>
+        <div id="sa_preview" class="info-box" style="display:none"></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <button class="fbtn orange" onclick="submitSavAdj()">✓ সাবমিট করুন</button>
+          <span class="fmsg" id="sa_msg"></span>
         </div>
       </div>
 
@@ -416,8 +436,7 @@ tr:hover td{background:#f8fafc}
           <div class="fitem"><label>Admission Fee</label><input type="number" id="me_adm" placeholder="50" value="50"></div>
           <div class="fitem"><label>Passbook Fee</label><input type="number" id="me_pb" placeholder="30" value="30"></div>
           <div class="fitem"><label>Form Fee</label><input type="number" id="me_ff" placeholder="120" value="120"></div>
-          
-          <div class="fitem"><label>Insurance (হাজারে ৫ টাকা)</label><input type="number" id="me_ins" placeholder="0"></div>
+          <div class="fitem"><label>Insurance</label><input type="number" id="me_ins" placeholder="0"></div>
         </div>
         <div class="fsec">
           <div class="fg">
@@ -445,7 +464,6 @@ tr:hover td{background:#f8fafc}
     </div>
 
     <div id="tab-report" class="tab-panel">
-
       <div class="card no-print" style="margin-bottom:14px" id="rpt_controls_wrap">
         <div class="st">📅 রিপোর্টের ধরন ও তারিখ নির্বাচন করুন</div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
@@ -518,7 +536,6 @@ function fmtDate(d){
   if(isNaN(dt))return String(d).substring(0,10);
   return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 }
-
 function toDate(d){
   if(!d)return null;
   if(typeof d==='number'&&d>40000)return new Date((d-25569)*86400*1000);
@@ -526,10 +543,8 @@ function toDate(d){
     const p=d.split('T')[0].split('-');
     return new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
   }
-  const dt=new Date(d);
-  return isNaN(dt)?null:dt;
+  const dt=new Date(d);return isNaN(dt)?null:dt;
 }
-
 function isSame(d1,d2){
   const a=toDate(d1),b=new Date(d2);
   if(!a||isNaN(b))return false;
@@ -545,13 +560,16 @@ function showTab(tabName){
   if(panel)panel.classList.add('active');
   const btn=document.querySelector(`.tbtn[data-tab="${tabName}"]`);
   if(btn)btn.classList.add('active');
+  
   if(tabName==='entry'){
     populateMemSelect();
     const td=today();
     const cd=document.getElementById('ce_date');
     const ed=document.getElementById('ee_date');
+    const sad=document.getElementById('sa_date'); 
     if(cd&&!cd.value)cd.value=td;
     if(ed&&!ed.value)ed.value=td;
+    if(sad&&!sad.value)sad.value=td;
   }
   if(tabName==='report'){
     initReportTab();
@@ -634,41 +652,6 @@ function showMsg(id,ok,msg){
 
 function renderAll(){
   renderOv();renderColl();renderMem();renderOD();renderExp();renderFund();renderPL();
-  // Safe Date Rendering without conflict
-  const sel=document.getElementById('datePick'); 
-  if(sel && sel.value) {
-      const v = sel.value;
-      const cR=(D.collections||[]).filter(r=>isSame(r.Date,v));
-      const eR=(D.expenses||[]).filter(r=>isSame(r.Date,v));
-      const mR=(D.members||[]).filter(r=>isSame(r['Loan Receved Date'],v));
-      const tc=cR.reduce((s,r)=>s+num(r['Collection Amount']),0);
-      const ts=cR.reduce((s,r)=>s+num(r['Savings']),0);
-      const tp=cR.reduce((s,r)=>s+num(r['Principal']),0);
-      const tsc=cR.reduce((s,r)=>s+num(r['Service Charge']),0);
-      const te=eR.reduce((s,r)=>s+num(r['Amount']),0);
-      const nl=mR.reduce((s,r)=>s+num(r['Loan Amount']),0);
-      const dt=new Date(v);
-      const dl = document.getElementById('dateLbl');
-      if(dl) dl.textContent=dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(v===today()?' (আজকে)':'');
-      
-      const ds = document.getElementById('dateStats');
-      if(ds) {
-          ds.innerHTML=[
-            {l:'Collection',v:cur(tc),c:'#059669'},{l:'Savings',v:cur(ts),c:'#0891b2'},
-            {l:'Principal',v:cur(tp),c:'#7c3aed'},{l:'S.Charge',v:cur(tsc),c:'#16a34a'},
-            {l:'Expense',v:cur(te),c:'#dc2626'},{l:'নতুন Loan',v:cur(nl),c:'#d97706'},
-            {l:'Entries',v:cR.length,c:'#2563ab'},
-          ].map(s=>`<div class="ds"><div class="dv" style="color:${s.c}">${s.v}</div><div class="dl">${s.l}</div></div>`).join('');
-      }
-      const dColl = document.getElementById('dateColl');
-      if(dColl) dColl.innerHTML=cR.length?cR.map(r=>`<tr><td><span class="badge bb">${r['Member ID']||'—'}</span></td><td class="bold">${r.Name||'—'}</td><td class="green">${cur(r['Collection Amount'])}</td><td>${cur(r['Savings'])}</td><td>${cur(r['Principal'])}</td><td>${cur(r['Service Charge'])}</td></tr>`).join(''):'<tr><td colspan="6" class="nd">ঐ তারিখে কোনো collection নেই</td></tr>';
-      
-      const dExp = document.getElementById('dateExp');
-      if(dExp) dExp.innerHTML=eR.length?eR.map(r=>`<tr><td><span class="badge by">${r['Expense Head']||'—'}</span></td><td style="color:var(--muted)">${r.Details||'—'}</td><td class="red">${cur(r['Amount'])}</td></tr>`).join(''):'<tr><td colspan="3" class="nd">ঐ তারিখে কোনো expense নেই</td></tr>';
-      
-      const dLoan = document.getElementById('dateLoan');
-      if(dLoan) dLoan.innerHTML=mR.length?`<div class="st" style="margin-top:0">ঐ দিনে Loan বিতরণ (${mR.length} জন)</div>`+mR.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span class="bold">${r.Name||'—'}</span><span class="green">${cur(r['Loan Amount'])}</span></div>`).join(''):'';
-  }
 }
 
 // ── FINANCIALS ──
@@ -677,8 +660,6 @@ function getF(){
   const tAdm=m.reduce((x,r)=>x+num(r['Admission Fee']),0);
   const tPb =m.reduce((x,r)=>x+num(r['Passbook Fee']),0);
   const tFf =m.reduce((x,r)=>x+num(r['Form Fee']),0);
-  
-  // Insurance Income Added Here
   const tIns=m.reduce((x,r)=>x+num(r['Insurance']),0);
   
   const tSC =c.reduce((x,r)=>x+num(r['Service Charge']),0);
@@ -688,7 +669,7 @@ function getF(){
   const tExp=e.reduce((x,r)=>x+num(r['Amount']),0);
   const tLoan=m.reduce((x,r)=>x+num(r['Loan Amount']),0);
   
-  const gross=tSC+tAdm+tPb+tFf+tIns; // Insurance Added to Gross
+  const gross=tSC+tAdm+tPb+tFf+tIns; 
   const net=gross-tExp;
   const iCap=num(s["Owner's Initial Capital"]||500000);
   const cash=num(s['NET CASH IN HAND']||s['Net Cash in Hand']||0);
@@ -1054,7 +1035,7 @@ function renderPL(){
     {l:'Admission Fees',v:F.tAdm,n:'Member_Master'},
     {l:'Passbook Fees',v:F.tPb,n:'Member_Master'},
     {l:'Form Fees',v:F.tFf,n:'Member_Master'},
-    {l:'Insurance',v:F.tIns,n:'Member_Master'} // New Insurance Item in P&L
+    {l:'Insurance',v:F.tIns,n:'Member_Master'} 
   ];
   document.getElementById('plInc').innerHTML=iItems.map(i=>`<div class="plr"><div><div style="font-size:13px">${i.l}</div><div style="font-size:11px;color:var(--muted)">${i.n}</div></div><span style="color:var(--accent);font-weight:700">${cur(i.v)}</span></div>`).join('')+`<div class="plt" style="color:#16a34a"><span>Total Gross Income</span><span>${cur(F.gross)}</span></div>`;
   const cats={};(D.expenses||[]).forEach(r=>{const k=r['Expense Head']||'Other';cats[k]=(cats[k]||0)+num(r['Amount']);});
@@ -1105,7 +1086,7 @@ function fillColl(){
   const loan  = num(mem['Loan Amount']) || 0;
   
   const savTarget = num(mem['Savings Target']) || (loan * 0.10); 
-  const svcTarget = num(mem['Service Charge']) || (loan * 0.10); 
+  const svcTarget = num(mem['Service Charge']) || 0; 
   
   const savPerInst = Math.round(savTarget / iTerm) || 0;
   const scPerInst  = Math.round(svcTarget / iTerm) || 0;
@@ -1144,7 +1125,7 @@ function splitColl(){
   const loan = num(mem['Loan Amount']) || 0;
   
   const savTarget = num(mem['Savings Target']) || (loan * 0.10);
-  const svcTarget = num(mem['Service Charge']) || (loan * 0.10);
+  const svcTarget = num(mem['Service Charge']) || 0;
   
   const savPerInst = Math.round(savTarget / iTerm) || 0;
   const scPerInst  = Math.round(svcTarget / iTerm) || 0;
@@ -1159,6 +1140,106 @@ function splitColl(){
   document.getElementById('ce_sc').value  = scAmt || 0;
   document.getElementById('ce_pri').value = Math.max(0, priAmt) || 0;
 }
+
+// ── SAVINGS WITHDRAWAL / LOAN ADJUSTMENT ──
+
+function fillSavAdj(){
+  const inputEl = document.getElementById('sa_member_input');
+  if(!inputEl) return;
+  const id = inputEl.value.split(' — ')[0].trim();
+  document.getElementById('sa_member').value = id;
+
+  const mem = (D.members||[]).find(m=>String(m['Member ID'])===String(id));
+  const preview = document.getElementById('sa_preview');
+  if(!mem){
+    preview.style.display='none';
+    return;
+  }
+
+  const od = getOD(mem);
+  
+  preview.style.display='block';
+  preview.innerHTML=`<strong>${mem.Name||''}</strong> | বর্তমান সঞ্চয় জমা: <strong class="green">${cur(od.tSav)}</strong> | বকেয়া লোন (বাকি): <strong class="orange">${cur(od.remaining)}</strong>`;
+}
+
+async function submitSavAdj(){
+  const id=document.getElementById('sa_member').value;
+  const mem=(D.members||[]).find(m=>String(m['Member ID'])===String(id));
+  if(!id||!mem){showMsg('sa_msg',false,'সদস্য বেছে নিন');return;}
+  
+  const dt=document.getElementById('sa_date').value;
+  if(!dt){showMsg('sa_msg',false,'তারিখ দিন');return;}
+  
+  const amt=num(document.getElementById('sa_amt').value);
+  if(!amt || amt <= 0){showMsg('sa_msg',false,'সঠিক পরিমাণ দিন');return;}
+
+  const type = document.getElementById('sa_type').value;
+  const od = getOD(mem);
+
+  if(type === 'withdrawal' && amt > od.tSav) {
+    showMsg('sa_msg',false,'পর্যাপ্ত সঞ্চয় নেই! বর্তমান সঞ্চয়: ' + cur(od.tSav));
+    return;
+  }
+
+  if(type === 'adjustment') {
+     if(amt > od.tSav){
+         showMsg('sa_msg',false,'পর্যাপ্ত সঞ্চয় নেই! বর্তমান সঞ্চয়: ' + cur(od.tSav));
+         return;
+     }
+     if(amt > od.remaining){
+         showMsg('sa_msg',false,'পরিমাণ বকেয়া লোনের চেয়ে বেশি! বাকি আছে: ' + cur(od.remaining));
+         return;
+     }
+  }
+
+  const btn=document.querySelector('[onclick="submitSavAdj()"]');
+  if(btn){btn.disabled=true;btn.textContent='প্রসেসিং...';}
+
+  let collAmt = 0;
+  let savAmt = -Math.abs(amt); 
+  let priAmt = 0;
+  let prefix = "";
+
+  if(type === 'withdrawal'){
+     collAmt = -Math.abs(amt); 
+     prefix = "সঞ্চয় উত্তোলন: ";
+  } else {
+     collAmt = 0; 
+     priAmt = Math.abs(amt); 
+     prefix = "লোন সমন্বয়: ";
+  }
+
+  const data={
+    'Date':dt,
+    'Member ID':id,
+    'Name':mem.Name||'',
+    'Father/Husbend':mem['Father/Husbend']||mem['Father/Husband']||'',
+    'Collection Amount':collAmt,
+    'Savings':savAmt,
+    'Principal':priAmt,
+    'Service Charge':0,
+    'Remarks': prefix + (document.getElementById('sa_rem').value||'')
+  };
+
+  const res=await postData('add_collection',data);
+  showMsg('sa_msg',res.success,res.message||'Error');
+  
+  if(res.success){
+    if(!D.collections) D.collections = [];
+    D.collections.push(data);
+    
+    ['sa_member_input','sa_amt','sa_rem'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    document.getElementById('sa_member').value='';
+    const pr=document.getElementById('sa_preview');if(pr)pr.style.display='none';
+    
+    renderOv(); renderColl(); renderFund();
+    if(document.getElementById('tab-report').classList.contains('active')) renderReport();
+    setTimeout(() => { loadData(false); }, 2000); 
+  }
+  if(btn){btn.disabled=false;btn.textContent='✓ সাবমিট করুন';}
+}
+
+// ── FAST SUBMIT LOGIC ──
 
 async function submitColl(){
   const id=document.getElementById('ce_member').value;
