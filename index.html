@@ -194,13 +194,12 @@ tr:hover td{background:#f8fafc}
 .nd{text-align:center;padding:28px;color:var(--muted);font-size:14px}
 
 /* PRINT STYLES */
-.printHeader { display: none; }
 @media print {
   body { background: #fff !important; color: #000 !important; font-size: 12px; }
   header, .tabs, .no-print, .sb, .hb, .ubadge, #loginPage { display: none !important; }
-  .printHeader, .rpt-print-header { display: block !important; text-align: center; margin-bottom: 20px; }
-  .printHeader h2, .rpt-print-header h2 { font-size: 22px; color: #000; margin-bottom:4px; }
-  .printHeader p, .rpt-print-header p { font-size: 13px; color: #444; }
+  .rpt-print-header { display: block !important; text-align: center; margin-bottom: 20px; }
+  .rpt-print-header h2 { font-size: 22px; color: #000; margin-bottom:4px; }
+  .rpt-print-header p { font-size: 13px; color: #444; }
   .card { border: 1px solid #ddd !important; box-shadow: none !important; margin-bottom: 15px !important; padding: 10px !important; page-break-inside: avoid; }
   main { padding: 0 !important; max-width: 100% !important; }
   .tab-panel { display: none !important; }
@@ -276,7 +275,6 @@ tr:hover td{background:#f8fafc}
 
     <div class="tabs" id="tabBar">
       <button class="tbtn active" data-tab="overview">📊 Overview</button>
-      <button class="tbtn" data-tab="date">📅 তারিখভিত্তিক</button>
       <button class="tbtn" data-tab="collection">💰 Collection</button>
       <button class="tbtn" data-tab="members">👥 সদস্য</button>
       <button class="tbtn" data-tab="overdue">⚠️ বকেয়া</button>
@@ -297,27 +295,6 @@ tr:hover td{background:#f8fafc}
       <div class="two-col">
         <div class="card"><div class="st">সর্বশেষ ১০টি Collection</div><div class="tw"><table><thead><tr><th>তারিখ</th><th>নাম</th><th>Collection</th><th>Principal</th></tr></thead><tbody id="recentColl"></tbody></table></div></div>
         <div class="card"><div class="st">Loan Recovery Progress</div><div id="loanProg"></div></div>
-      </div>
-    </div>
-
-    <div id="tab-date" class="tab-panel">
-      <div class="card" style="margin-bottom:14px">
-        <div class="st">📅 তারিখ বেছে নিন</div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-          <input type="date" id="datePick" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none" onchange="renderDate()">
-          <button class="bsm" onclick="setTodayDateView()">আজকে</button>
-          <button class="bsm" onclick="setYesterdayDateView()">গতকাল</button>
-          <span id="dateLbl" style="font-size:13px;color:var(--muted)"></span>
-        </div>
-        <div class="dsg" id="dateStats"></div>
-      </div>
-      <div class="two-col">
-        <div class="card"><div class="st">ঐ দিনের Collection</div><div class="tw"><table><thead><tr><th>Member ID</th><th>নাম</th><th>Collection</th><th>Savings</th><th>Principal</th><th>S.Charge</th></tr></thead><tbody id="dateColl"></tbody></table></div></div>
-        <div class="card">
-          <div class="st">ঐ দিনের Expense</div>
-          <div class="tw"><table><thead><tr><th>Category</th><th>Details</th><th>Amount</th></tr></thead><tbody id="dateExp"></tbody></table></div>
-          <div id="dateLoan" style="margin-top:14px"></div>
-        </div>
       </div>
     </div>
 
@@ -373,6 +350,7 @@ tr:hover td{background:#f8fafc}
     </div>
 
     <div id="tab-entry" class="tab-panel">
+
       <div class="card" style="margin-bottom:14px">
         <div class="st">💰 দৈনিক কিস্তি এন্ট্রি</div>
         <div class="fg">
@@ -438,6 +416,8 @@ tr:hover td{background:#f8fafc}
           <div class="fitem"><label>Admission Fee</label><input type="number" id="me_adm" placeholder="50" value="50"></div>
           <div class="fitem"><label>Passbook Fee</label><input type="number" id="me_pb" placeholder="30" value="30"></div>
           <div class="fitem"><label>Form Fee</label><input type="number" id="me_ff" placeholder="120" value="120"></div>
+          
+          <div class="fitem"><label>Insurance (হাজারে ৫ টাকা)</label><input type="number" id="me_ins" placeholder="0"></div>
         </div>
         <div class="fsec">
           <div class="fg">
@@ -465,7 +445,7 @@ tr:hover td{background:#f8fafc}
     </div>
 
     <div id="tab-report" class="tab-panel">
-      
+
       <div class="card no-print" style="margin-bottom:14px" id="rpt_controls_wrap">
         <div class="st">📅 রিপোর্টের ধরন ও তারিখ নির্বাচন করুন</div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
@@ -538,6 +518,7 @@ function fmtDate(d){
   if(isNaN(dt))return String(d).substring(0,10);
   return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 }
+
 function toDate(d){
   if(!d)return null;
   if(typeof d==='number'&&d>40000)return new Date((d-25569)*86400*1000);
@@ -545,8 +526,10 @@ function toDate(d){
     const p=d.split('T')[0].split('-');
     return new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
   }
-  const dt=new Date(d);return isNaN(dt)?null:dt;
+  const dt=new Date(d);
+  return isNaN(dt)?null:dt;
 }
+
 function isSame(d1,d2){
   const a=toDate(d1),b=new Date(d2);
   if(!a||isNaN(b))return false;
@@ -601,8 +584,6 @@ function checkSess(){
     document.getElementById('uname').textContent=u.n;
     document.getElementById('appContent').style.display='block';
     
-    // আমি এখান থেকে 'startDate' এর লজিক মুছে দিয়েছি যা এরর তৈরি করছিল
-    
     loadData(true);
   }
 }
@@ -653,29 +634,40 @@ function showMsg(id,ok,msg){
 
 function renderAll(){
   renderOv();renderColl();renderMem();renderOD();renderExp();renderFund();renderPL();
-  // Call renderDate without depending on custom report fields
-  const sel=document.getElementById('datePick').value; 
-  if(sel) {
-      const cR=(D.collections||[]).filter(r=>isSame(r.Date,sel));
-      const eR=(D.expenses||[]).filter(r=>isSame(r.Date,sel));
-      const mR=(D.members||[]).filter(r=>isSame(r['Loan Receved Date'],sel));
+  // Safe Date Rendering without conflict
+  const sel=document.getElementById('datePick'); 
+  if(sel && sel.value) {
+      const v = sel.value;
+      const cR=(D.collections||[]).filter(r=>isSame(r.Date,v));
+      const eR=(D.expenses||[]).filter(r=>isSame(r.Date,v));
+      const mR=(D.members||[]).filter(r=>isSame(r['Loan Receved Date'],v));
       const tc=cR.reduce((s,r)=>s+num(r['Collection Amount']),0);
       const ts=cR.reduce((s,r)=>s+num(r['Savings']),0);
       const tp=cR.reduce((s,r)=>s+num(r['Principal']),0);
       const tsc=cR.reduce((s,r)=>s+num(r['Service Charge']),0);
       const te=eR.reduce((s,r)=>s+num(r['Amount']),0);
       const nl=mR.reduce((s,r)=>s+num(r['Loan Amount']),0);
-      const dt=new Date(sel);
-      document.getElementById('dateLbl').textContent=dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(sel===today()?' (আজকে)':'');
-      document.getElementById('dateStats').innerHTML=[
-        {l:'Collection',v:cur(tc),c:'#059669'},{l:'Savings',v:cur(ts),c:'#0891b2'},
-        {l:'Principal',v:cur(tp),c:'#7c3aed'},{l:'S.Charge',v:cur(tsc),c:'#16a34a'},
-        {l:'Expense',v:cur(te),c:'#dc2626'},{l:'নতুন Loan',v:cur(nl),c:'#d97706'},
-        {l:'Entries',v:cR.length,c:'#2563ab'},
-      ].map(s=>`<div class="ds"><div class="dv" style="color:${s.c}">${s.v}</div><div class="dl">${s.l}</div></div>`).join('');
-      document.getElementById('dateColl').innerHTML=cR.length?cR.map(r=>`<tr><td><span class="badge bb">${r['Member ID']||'—'}</span></td><td class="bold">${r.Name||'—'}</td><td class="green">${cur(r['Collection Amount'])}</td><td>${cur(r['Savings'])}</td><td>${cur(r['Principal'])}</td><td>${cur(r['Service Charge'])}</td></tr>`).join(''):'<tr><td colspan="6" class="nd">ঐ তারিখে কোনো collection নেই</td></tr>';
-      document.getElementById('dateExp').innerHTML=eR.length?eR.map(r=>`<tr><td><span class="badge by">${r['Expense Head']||'—'}</span></td><td style="color:var(--muted)">${r.Details||'—'}</td><td class="red">${cur(r['Amount'])}</td></tr>`).join(''):'<tr><td colspan="3" class="nd">ঐ তারিখে কোনো expense নেই</td></tr>';
-      document.getElementById('dateLoan').innerHTML=mR.length?`<div class="st" style="margin-top:0">ঐ দিনে Loan বিতরণ (${mR.length} জন)</div>`+mR.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span class="bold">${r.Name||'—'}</span><span class="green">${cur(r['Loan Amount'])}</span></div>`).join(''):'';
+      const dt=new Date(v);
+      const dl = document.getElementById('dateLbl');
+      if(dl) dl.textContent=dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(v===today()?' (আজকে)':'');
+      
+      const ds = document.getElementById('dateStats');
+      if(ds) {
+          ds.innerHTML=[
+            {l:'Collection',v:cur(tc),c:'#059669'},{l:'Savings',v:cur(ts),c:'#0891b2'},
+            {l:'Principal',v:cur(tp),c:'#7c3aed'},{l:'S.Charge',v:cur(tsc),c:'#16a34a'},
+            {l:'Expense',v:cur(te),c:'#dc2626'},{l:'নতুন Loan',v:cur(nl),c:'#d97706'},
+            {l:'Entries',v:cR.length,c:'#2563ab'},
+          ].map(s=>`<div class="ds"><div class="dv" style="color:${s.c}">${s.v}</div><div class="dl">${s.l}</div></div>`).join('');
+      }
+      const dColl = document.getElementById('dateColl');
+      if(dColl) dColl.innerHTML=cR.length?cR.map(r=>`<tr><td><span class="badge bb">${r['Member ID']||'—'}</span></td><td class="bold">${r.Name||'—'}</td><td class="green">${cur(r['Collection Amount'])}</td><td>${cur(r['Savings'])}</td><td>${cur(r['Principal'])}</td><td>${cur(r['Service Charge'])}</td></tr>`).join(''):'<tr><td colspan="6" class="nd">ঐ তারিখে কোনো collection নেই</td></tr>';
+      
+      const dExp = document.getElementById('dateExp');
+      if(dExp) dExp.innerHTML=eR.length?eR.map(r=>`<tr><td><span class="badge by">${r['Expense Head']||'—'}</span></td><td style="color:var(--muted)">${r.Details||'—'}</td><td class="red">${cur(r['Amount'])}</td></tr>`).join(''):'<tr><td colspan="3" class="nd">ঐ তারিখে কোনো expense নেই</td></tr>';
+      
+      const dLoan = document.getElementById('dateLoan');
+      if(dLoan) dLoan.innerHTML=mR.length?`<div class="st" style="margin-top:0">ঐ দিনে Loan বিতরণ (${mR.length} জন)</div>`+mR.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span class="bold">${r.Name||'—'}</span><span class="green">${cur(r['Loan Amount'])}</span></div>`).join(''):'';
   }
 }
 
@@ -685,23 +677,27 @@ function getF(){
   const tAdm=m.reduce((x,r)=>x+num(r['Admission Fee']),0);
   const tPb =m.reduce((x,r)=>x+num(r['Passbook Fee']),0);
   const tFf =m.reduce((x,r)=>x+num(r['Form Fee']),0);
+  
+  // Insurance Income Added Here
+  const tIns=m.reduce((x,r)=>x+num(r['Insurance']),0);
+  
   const tSC =c.reduce((x,r)=>x+num(r['Service Charge']),0);
   const tSav=c.reduce((x,r)=>x+num(r['Savings']),0);
   const tPri=c.reduce((x,r)=>x+num(r['Principal']),0);
   const tCol=c.reduce((x,r)=>x+num(r['Collection Amount']),0);
   const tExp=e.reduce((x,r)=>x+num(r['Amount']),0);
   const tLoan=m.reduce((x,r)=>x+num(r['Loan Amount']),0);
-  const gross=tSC+tAdm+tPb+tFf;
+  
+  const gross=tSC+tAdm+tPb+tFf+tIns; // Insurance Added to Gross
   const net=gross-tExp;
   const iCap=num(s["Owner's Initial Capital"]||500000);
   const cash=num(s['NET CASH IN HAND']||s['Net Cash in Hand']||0);
   
-  // Safe String checking
   const tShare = m.reduce((x,r)=>x+num(r['Share']),0);
   const tShareRefund = e.filter(r=>String(r['Expense Head']||'').trim()==='Share Refund').reduce((x,r)=>x+num(r['Amount']),0);
   const netShare = tShare - tShareRefund;
 
-  return{m,c,e,s,tAdm,tPb,tFf,tSC,tSav,tPri,tCol,tExp,tLoan,outstanding:tLoan-tPri,gross,net,iCap,cash,netShare};
+  return{m,c,e,s,tAdm,tPb,tFf,tIns,tSC,tSav,tPri,tCol,tExp,tLoan,outstanding:tLoan-tPri,gross,net,iCap,cash,netShare};
 }
 
 // ── OVERDUE ──
@@ -716,8 +712,7 @@ function getOD(mem){
   const tSC=mc.reduce((s,r)=>s+num(r['Service Charge']),0);
   const tLoan=num(mem['Loan Amount']);
   
-  // ম্যাজিক ফিক্স ১: Total Payable হবে শুধুই Loan + S.Charge
-  const tLoanWSC = tLoan + num(mem['Service Charge']);
+  const tLoanWSC=num(mem['Total Loan Payable']) || (tLoan + num(mem['Service Charge']));
   
   const paidInstCount = iAmt > 0 ? (tSav + tPri + tSC) / iAmt : 0;
   const pCnt = parseFloat(paidInstCount.toFixed(2));
@@ -747,12 +742,10 @@ function getOD(mem){
     odAmt=odCount*iAmt;
   }
 
-  // ম্যাজিক ফিক্স ২: Remaining বা বাকি হিসাব হবে শুধুমাত্র Principal এবং S.Charge মাইনাস করে
-  const remaining = Math.max(0, tLoanWSC - (tPri + tSC));
-  const pct = tLoanWSC > 0 ? Math.min((tPri + tSC) / tLoanWSC * 100, 100) : 0;
-  const remInst = parseFloat(Math.max(0, iTerm - paidInstCount).toFixed(2));
+  const remaining=Math.max(0,tLoanWSC-(tPri+tSC));
+  const pct=tLoanWSC>0?Math.min((tPri+tSC)/tLoanWSC*100,100):0;
+  const remInst=parseFloat(Math.max(0,iTerm-paidInstCount).toFixed(2));
 
-  // লোন পুরোপুরি শোধ হয়ে গেলে বকেয়া জিরো হয়ে যাবে
   if (remaining <= 0) {
     odCount = 0;
     odAmt = 0;
@@ -791,7 +784,7 @@ function renderOv(){
     {i:'⚠️',v:odList.length,       l:'বকেয়া সদস্য',      c:'#b91c1c',s:cur(odAmt)+' বকেয়া'},
   ].map(k=>`<div class="kc" style="--kc:${k.c}"><span class="ki">${k.i}</span><div class="kv">${k.v}</div><div class="kl">${k.l}</div>${k.s?`<div class="ks">${k.s}</div>`:''}</div>`).join('');
 
-  const bars=[{l:'Admission Fees',v:F.tAdm,c:'#2563ab'},{l:'Form Fees',v:F.tFf,c:'#7c3aed'},{l:'Passbook Fees',v:F.tPb,c:'#0891b2'},{l:'Service Charge',v:F.tSC,c:'#059669'},{l:'Total Expenses',v:F.tExp,c:'#dc2626'}];
+  const bars=[{l:'Admission Fees',v:F.tAdm,c:'#2563ab'},{l:'Form Fees',v:F.tFf,c:'#7c3aed'},{l:'Passbook Fees',v:F.tPb,c:'#0891b2'},{l:'Service Charge',v:F.tSC,c:'#059669'},{l:'Insurance',v:F.tIns,c:'#0f766e'},{l:'Total Expenses',v:F.tExp,c:'#dc2626'}];
   const maxB=Math.max(...bars.map(b=>b.v),1);
   document.getElementById('plChart').innerHTML=bars.map(b=>`<div class="br2"><div class="bl">${b.l}</div><div class="bt"><div class="bf" style="width:${(b.v/maxB*100).toFixed(1)}%;background:${b.c}">${cur(b.v)}</div></div></div>`).join('');
 
@@ -814,13 +807,6 @@ function renderOv(){
       </div>
     </div>`;
   }).join('')||'<div class="nd">কোনো data নেই</div>';
-}
-
-// ── DATE VIEW ──
-function setTodayDateView(){document.getElementById('datePick').value=today();renderAll();}
-function setYesterdayDateView(){const d=new Date();d.setDate(d.getDate()-1);document.getElementById('datePick').value=d.toISOString().split('T')[0];renderAll();}
-function renderDate(){
-  // Handled inside renderAll() safely
 }
 
 // ── COLLECTION ──
@@ -983,6 +969,7 @@ function openEditModal(id){
       <div class="fitem"><label>Admission Fee</label><input type="number" id="em_adm" value="${num(mem['Admission Fee'])||50}"></div>
       <div class="fitem"><label>Passbook Fee</label><input type="number" id="em_pb" value="${num(mem['Passbook Fee'])||30}"></div>
       <div class="fitem"><label>Form Fee</label><input type="number" id="em_ff" value="${num(mem['Form Fee'])||120}"></div>
+      <div class="fitem"><label>Insurance</label><input type="number" id="em_ins" value="${num(mem['Insurance'])||''}"></div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px">
       <button class="fbtn orange" onclick="submitEdit('${mem['Member ID']}')">✓ আপডেট করুন</button>
@@ -1011,6 +998,7 @@ async function submitEdit(memberId){
     'Admission Fee':num(document.getElementById('em_adm').value),
     'Passbook Fee':num(document.getElementById('em_pb').value),
     'Form Fee':num(document.getElementById('em_ff').value),
+    'Insurance':num(document.getElementById('em_ins').value),
   };
   const res=await postData('edit_member',data);
   showMsg('em_msg',res.success,res.message||'Error');
@@ -1061,7 +1049,13 @@ function renderFund(){
 // ── P&L ──
 function renderPL(){
   const F=getF();
-  const iItems=[{l:'Service Charge',v:F.tSC,n:'Daily Collection'},{l:'Admission Fees',v:F.tAdm,n:'Member_Master'},{l:'Passbook Fees',v:F.tPb,n:'Member_Master'},{l:'Form Fees',v:F.tFf,n:'Member_Master'}];
+  const iItems=[
+    {l:'Service Charge',v:F.tSC,n:'Daily Collection'},
+    {l:'Admission Fees',v:F.tAdm,n:'Member_Master'},
+    {l:'Passbook Fees',v:F.tPb,n:'Member_Master'},
+    {l:'Form Fees',v:F.tFf,n:'Member_Master'},
+    {l:'Insurance',v:F.tIns,n:'Member_Master'} // New Insurance Item in P&L
+  ];
   document.getElementById('plInc').innerHTML=iItems.map(i=>`<div class="plr"><div><div style="font-size:13px">${i.l}</div><div style="font-size:11px;color:var(--muted)">${i.n}</div></div><span style="color:var(--accent);font-weight:700">${cur(i.v)}</span></div>`).join('')+`<div class="plt" style="color:#16a34a"><span>Total Gross Income</span><span>${cur(F.gross)}</span></div>`;
   const cats={};(D.expenses||[]).forEach(r=>{const k=r['Expense Head']||'Other';cats[k]=(cats[k]||0)+num(r['Amount']);});
   const maxC=Math.max(...Object.values(cats),1);const colors=['#2563ab','#059669','#d97706','#7c3aed','#dc2626','#0891b2'];
@@ -1111,7 +1105,7 @@ function fillColl(){
   const loan  = num(mem['Loan Amount']) || 0;
   
   const savTarget = num(mem['Savings Target']) || (loan * 0.10); 
-  const svcTarget = num(mem['Service Charge']) || 0; 
+  const svcTarget = num(mem['Service Charge']) || (loan * 0.10); 
   
   const savPerInst = Math.round(savTarget / iTerm) || 0;
   const scPerInst  = Math.round(svcTarget / iTerm) || 0;
@@ -1150,7 +1144,7 @@ function splitColl(){
   const loan = num(mem['Loan Amount']) || 0;
   
   const savTarget = num(mem['Savings Target']) || (loan * 0.10);
-  const svcTarget = num(mem['Service Charge']) || 0;
+  const svcTarget = num(mem['Service Charge']) || (loan * 0.10);
   
   const savPerInst = Math.round(savTarget / iTerm) || 0;
   const scPerInst  = Math.round(svcTarget / iTerm) || 0;
@@ -1165,8 +1159,6 @@ function splitColl(){
   document.getElementById('ce_sc').value  = scAmt || 0;
   document.getElementById('ce_pri').value = Math.max(0, priAmt) || 0;
 }
-
-// ── FAST SUBMIT LOGIC ──
 
 async function submitColl(){
   const id=document.getElementById('ce_member').value;
@@ -1246,9 +1238,11 @@ function autoCalcLoan() {
   if(loan > 0) {
       document.getElementById('me_svc').value = loan * 0.10; 
       document.getElementById('me_sav_target').value = loan * 0.10; 
+      document.getElementById('me_ins').value = Math.ceil((loan / 1000) * 5); // 1000 এ 5 টাকা Insurance
   } else {
       document.getElementById('me_svc').value = '';
       document.getElementById('me_sav_target').value = '';
+      document.getElementById('me_ins').value = '';
   }
   calcMem();
 }
@@ -1308,6 +1302,7 @@ async function submitMem(){
     'Admission Fee':num(document.getElementById('me_adm').value)||50,
     'Passbook Fee':num(document.getElementById('me_pb').value)||30,
     'Form Fee':num(document.getElementById('me_ff').value)||120,
+    'Insurance':num(document.getElementById('me_ins').value)||0,
     'Service Charge':svc,
     'Savings Target':savTarget, 
     'Total Loan Payable':loan + svc, 
@@ -1323,7 +1318,7 @@ async function submitMem(){
     if(!D.members) D.members = [];
     D.members.push(data);
 
-    ['me_id','me_name','me_father','me_addr','me_phone','me_loan','me_svc','me_sav_target','me_inst','me_total'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['me_id','me_name','me_father','me_addr','me_phone','me_loan','me_svc','me_sav_target','me_inst','me_total', 'me_ins'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('me_date').value='';
     const pr=document.getElementById('me_preview');if(pr)pr.style.display='none';
     
@@ -1691,6 +1686,7 @@ function buildFullSummaryReport(){
       <div class="plr"><span>Admission Fees</span><span class="green">${cur(F.tAdm)}</span></div>
       <div class="plr"><span>Passbook Fees</span><span class="green">${cur(F.tPb)}</span></div>
       <div class="plr"><span>Form Fees</span><span class="green">${cur(F.tFf)}</span></div>
+      <div class="plr"><span>Insurance</span><span class="green">${cur(F.tIns)}</span></div>
       <div class="plt" style="color:#16a34a"><span>Total Gross Income</span><span>${cur(F.gross)}</span></div>
     </div>
     <div class="card">
