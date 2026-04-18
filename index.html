@@ -198,9 +198,6 @@ tr:hover td{background:#f8fafc}
 @media print {
   body { background: #fff !important; color: #000 !important; font-size: 12px; }
   header, .tabs, .no-print, .sb, .hb, .ubadge, #loginPage { display: none !important; }
-  .printHeader, .rpt-print-header { display: block !important; text-align: center; margin-bottom: 20px; }
-  .printHeader h2, .rpt-print-header h2 { font-size: 22px; color: #000; margin-bottom:4px; }
-  .printHeader p, .rpt-print-header p { font-size: 13px; color: #444; }
   .card { border: 1px solid #ddd !important; box-shadow: none !important; margin-bottom: 15px !important; padding: 10px !important; page-break-inside: avoid; }
   main { padding: 0 !important; max-width: 100% !important; }
   .tab-panel { display: none !important; }
@@ -522,7 +519,6 @@ tr:hover td{background:#f8fafc}
 // CONFIG
 // ══════════════════════════════════
 const API_URL='https://script.google.com/macros/s/AKfycbykoQLar5WI5B-OR4iPOAFbH2vgBsuf4xVW8FjQvpyOqdq1REcEjwWx9fFmGILGASOfdg/exec';
-const USERS=[{u:'Admin',p:'12345',n:'Admin'}];
 const SK='lms_v3';
 let D={members:[],collections:[],expenses:[],summary:{},lastUpdated:''};
 const cur=n=>'৳'+Number(n||0).toLocaleString('en-IN');
@@ -567,6 +563,7 @@ function showTab(tabName){
   if(panel)panel.classList.add('active');
   const btn=document.querySelector(`.tbtn[data-tab="${tabName}"]`);
   if(btn)btn.classList.add('active');
+  
   if(tabName==='entry'){
     populateMemSelect();
     const td=today();
@@ -587,18 +584,42 @@ document.getElementById('tabBar').addEventListener('click',function(e){
   if(btn&&btn.dataset.tab)showTab(btn.dataset.tab);
 });
 
-// ── LOGIN ──
-function doLogin(){
+// ── SECURE LOGIN ──
+async function doLogin(){
   const u=document.getElementById('lu').value.trim();
   const p=document.getElementById('lp').value;
-  const user=USERS.find(x=>x.u.toLowerCase()===u.toLowerCase()&&x.p===p);
-  if(!user){document.getElementById('loginErr').style.display='block';document.getElementById('lp').value='';return;}
-  sessionStorage.setItem(SK,JSON.stringify({u:user.u,n:user.n}));
-  document.getElementById('loginPage').style.display='none';
-  document.getElementById('uname').textContent=user.n;
-  document.getElementById('appContent').style.display='block';
-  loadData(true);
+  
+  if(!u || !p) {
+     const err = document.getElementById('loginErr');
+     err.textContent = '❌ Username এবং Password দিন';
+     err.style.display='block';
+     return;
+  }
+
+  const btn = document.querySelector('.lbtn');
+  btn.disabled = true;
+  btn.textContent = 'লগিন হচ্ছে...';
+  document.getElementById('loginErr').style.display='none';
+
+  const res = await postData('login', {u: u, p: p});
+
+  if(res.success){
+    sessionStorage.setItem(SK,JSON.stringify({u:res.user.u,n:res.user.n}));
+    document.getElementById('loginPage').style.display='none';
+    document.getElementById('uname').textContent=res.user.n;
+    document.getElementById('appContent').style.display='block';
+    loadData(true);
+  } else {
+    const err = document.getElementById('loginErr');
+    err.textContent = '❌ ' + (res.message || 'Username বা Password ভুল');
+    err.style.display='block';
+    document.getElementById('lp').value='';
+  }
+  
+  btn.disabled = false;
+  btn.textContent = '🔐 Login করুন';
 }
+
 function doLogout(){sessionStorage.removeItem(SK);location.reload();}
 function checkSess(){
   const s=sessionStorage.getItem(SK);
