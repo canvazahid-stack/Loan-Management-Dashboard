@@ -361,9 +361,9 @@ tr:hover td{background:#f8fafc}
           </div>
 
           <div class="fitem"><label>Collection Amount *</label><input type="number" id="ce_coll" placeholder="0" oninput="splitColl()" style="font-weight:700;font-size:15px"></div>
-          <div class="fitem"><label>Savings</label><input type="number" id="ce_sav" placeholder="0"></div>
-          <div class="fitem"><label>Principal</label><input type="number" id="ce_pri" placeholder="0"></div>
-          <div class="fitem"><label>Service Charge</label><input type="number" id="ce_sc" placeholder="0"></div>
+          <div class="fitem"><label>Savings (অটো/ম্যানুয়াল)</label><input type="number" id="ce_sav" placeholder="0"></div>
+          <div class="fitem"><label>Principal (অটো/ম্যানুয়াল)</label><input type="number" id="ce_pri" placeholder="0"></div>
+          <div class="fitem"><label>Service Charge (অটো/ম্যানুয়াল)</label><input type="number" id="ce_sc" placeholder="0"></div>
           <div class="fitem full"><label>Remarks</label><input type="text" id="ce_rem" placeholder="ঐচ্ছিক"></div>
         </div>
         <div id="ce_preview" class="info-box" style="display:none"></div>
@@ -390,7 +390,7 @@ tr:hover td{background:#f8fafc}
             </select>
           </div>
           <div class="fitem"><label>পরিমাণ *</label><input type="number" id="sa_amt" placeholder="0" style="font-weight:700;font-size:15px;color:var(--danger)"></div>
-          <div class="fitem full"><label>Remarks</label><input type="text" id="sa_rem" placeholder="ঐচ্ছিক"></div>
+          <div class="fitem full"><label>Remarks</label><input type="text" id="sa_rem" placeholder="ঐচ্ছিক (যেমন: মেয়ের বিয়ের জন্য)"></div>
         </div>
         <div id="sa_preview" class="info-box" style="display:none"></div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -411,6 +411,7 @@ tr:hover td{background:#f8fafc}
               <option>Marketing &amp; Travel</option>
               <option>Share Refund</option>
               <option>Miscellaneous</option>
+              <option>Cash Withdrawal</option>
             </select>
           </div>
           <div class="fitem"><label>Amount *</label><input type="number" id="ee_amt" placeholder="0"></div>
@@ -696,19 +697,25 @@ function getF(){
   const tSav=c.reduce((x,r)=>x+num(r['Savings']),0);
   const tPri=c.reduce((x,r)=>x+num(r['Principal']),0);
   const tCol=c.reduce((x,r)=>x+num(r['Collection Amount']),0);
-  const tExp=e.reduce((x,r)=>x+num(r['Amount']),0);
   const tLoan=m.reduce((x,r)=>x+num(r['Loan Amount']),0);
+
+  const ownerDraw = e.filter(r=>String(r['Expense Head']||'').trim()==='Cash Withdrawal' || String(r['Expense Head']||'').trim()==='মালিকের উত্তোলন').reduce((x,r)=>x+num(r['Amount']),0);
+  const realExpList = e.filter(r=>String(r['Expense Head']||'').trim()!=='Cash Withdrawal' && String(r['Expense Head']||'').trim()!=='মালিকের উত্তোলন');
+  const tExp = realExpList.reduce((x,r)=>x+num(r['Amount']),0);
   
   const gross=tSC+tAdm+tPb+tFf+tIns; 
-  const net=gross-tExp;
-  const iCap=num(s["Owner's Initial Capital"]||500000);
+  const net=gross - tExp; 
+  
+  const initialCap=num(s["Owner's Initial Capital"]||500000);
+  const iCap = initialCap - ownerDraw; 
+  
   const cash=num(s['NET CASH IN HAND']||s['Net Cash in Hand']||0);
   
   const tShare = m.reduce((x,r)=>x+num(r['Share']),0);
   const tShareRefund = e.filter(r=>String(r['Expense Head']||'').trim()==='Share Refund').reduce((x,r)=>x+num(r['Amount']),0);
   const netShare = tShare - tShareRefund;
 
-  return{m,c,e,s,tAdm,tPb,tFf,tIns,tSC,tSav,tPri,tCol,tExp,tLoan,outstanding:tLoan-tPri,gross,net,iCap,cash,netShare};
+  return{m,c,e,s,tAdm,tPb,tFf,tIns,tSC,tSav,tPri,tCol,tExp,tLoan,outstanding:tLoan-tPri,gross,net,iCap,initialCap,ownerDraw,cash,netShare};
 }
 
 // ── OVERDUE ──
@@ -1047,20 +1054,21 @@ function renderExp(){
 function renderFund(){
   const F=getF();
   document.getElementById('fGrid').innerHTML=[
-    {i:'🏦',v:F.iCap,l:"Owner's Capital",c:'#2563ab'},
+    {i:'🏦',v:F.iCap,l:"Current Capital",c:'#2563ab'},
+    {i:'💸',v:F.ownerDraw,l:"Cash Withdrawal",c:'#d97706'},
+    {i:'🤝',v:F.netShare,l:'Net Share Capital',c:'#0e7490'},
     {i:'📤',v:F.tLoan,l:'Principal Disbursed',c:'#7c3aed'},
     {i:'📥',v:F.tPri,l:'Principal Recovered',c:'#059669'},
     {i:'⚖️',v:F.outstanding,l:'Outstanding (Field)',c:'#d97706'},
     {i:'💰',v:F.tSav,l:'Net Savings',c:'#0891b2'},
-    {i:'🤝',v:F.netShare,l:'Net Share Capital',c:'#0e7490'},
     {i:'📉',v:F.tExp,l:'Total Expenses',c:'#dc2626'},
     {i:'💵',v:F.cash,l:'NET CASH IN HAND',c:'#16a34a'},
   ].map(k=>`<div class="kc" style="--kc:${k.c}"><span class="ki">${k.i}</span><div class="kv">${cur(k.v)}</div><div class="kl">${k.l}</div></div>`).join('');
   document.getElementById('fFlow').innerHTML=[
-    {l:"Owner's Capital",v:F.iCap,max:F.iCap,c:'#2563ab'},
+    {l:"Initial Capital",v:F.initialCap,max:F.initialCap,c:'#2563ab'},
     {l:'Principal Recovered',v:F.tPri,max:F.tLoan,c:'#059669'},
     {l:'Loan Outstanding',v:F.outstanding,max:F.tLoan,c:'#d97706'},
-    {l:'Net Cash in Hand',v:F.cash,max:F.iCap,c:'#0f766e'},
+    {l:'Net Cash in Hand',v:F.cash,max:F.initialCap,c:'#0f766e'},
   ].map(f=>`<div style="margin-bottom:13px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px">${f.l}</span><span style="font-size:13px;font-weight:700;color:${f.c}">${cur(f.v)}</span></div><div class="pg"><div class="pgf" style="width:${f.max>0?Math.min(f.v/f.max*100,100).toFixed(1):0}%;background:${f.c}"></div></div></div>`).join('');
   document.getElementById('fPort').innerHTML=`<div class="tw" style="max-height:320px;overflow-y:auto"><table><thead><tr><th>নাম</th><th>Loan</th><th>পরিশোধ</th><th>বাকি/বকেয়া</th><th>%</th></tr></thead><tbody>${F.m.map(m=>{const od=getOD(m);const clr=od.pct>=100?'#059669':od.pct>50?'#2563ab':'#d97706';return `<tr class="${od.odCount>0?'tr-od':''}"><td class="bold" style="cursor:pointer;color:var(--pl)" onclick="openMemModal('${m['Member ID']}')">${m.Name||'—'}</td><td>${cur(od.tLoan)}</td><td class="green">${cur(od.tPri)}</td><td class="${od.odCount>0?'red':'orange'}">${od.odCount>0?'⚠️ '+cur(od.odAmt):cur(od.tLoan-od.tPri)}</td><td style="min-width:60px"><div style="background:var(--border);border-radius:99px;height:6px;overflow:hidden"><div style="height:100%;border-radius:99px;background:${clr};width:${od.pct.toFixed(1)}%"></div></div><div style="font-size:10px;color:var(--muted);text-align:right;margin-top:1px">${od.pct.toFixed(0)}%</div></td></tr>`;}).join('')||'<tr><td colspan="5" class="nd">কোনো data নেই</td></tr>'}</tbody></table></div>`;
 }
@@ -1077,14 +1085,36 @@ function renderPL(){
   ];
   document.getElementById('plInc').innerHTML=iItems.map(i=>`<div class="plr"><div><div style="font-size:13px">${i.l}</div><div style="font-size:11px;color:var(--muted)">${i.n}</div></div><span style="color:var(--accent);font-weight:700">${cur(i.v)}</span></div>`).join('')+`<div class="plt" style="color:#16a34a"><span>Total Gross Income</span><span>${cur(F.gross)}</span></div>`;
   const cats={};(D.expenses||[]).forEach(r=>{const k=r['Expense Head']||'Other';cats[k]=(cats[k]||0)+num(r['Amount']);});
-  const maxC=Math.max(...Object.values(cats),1);const colors=['#2563ab','#059669','#d97706','#7c3aed','#dc2626','#0891b2'];
+  
+  // ── Cash Withdrawal আবার Expense Sources এ দেখানো হলো ──
   const catE=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('plExpS').innerHTML=(catE.length?catE.map(([k,v],i)=>`<div class="plr"><span style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:${colors[i%colors.length]};flex-shrink:0;display:inline-block"></span>${k}</span><span class="red">${cur(v)}</span></div>`).join(''):'<div class="plr">কোনো expense নেই</div>')+`<div class="plt" style="color:var(--danger)"><span>Total Expenses</span><span>${cur(F.tExp)}</span></div>`;
+  const colors=['#2563ab','#059669','#d97706','#7c3aed','#dc2626','#0891b2'];
+  
+  document.getElementById('plExpS').innerHTML=(catE.length?catE.map(([k,v],i)=>`<div class="plr"><span style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:${colors[i%colors.length]};flex-shrink:0;display:inline-block"></span>${k}</span><span class="red">${cur(v)}</span></div>`).join(''):'<div class="plr">কোনো expense নেই</div>')+`<div class="plt" style="color:var(--danger)"><span>Total Expenses</span><span>${cur(F.tExp + F.ownerDraw)}</span></div>`;
+  
   const isPro=F.net>=0;
-  document.getElementById('plNet').innerHTML=`<div class="plr"><span>Gross Income</span><span style="color:var(--accent);font-weight:700">${cur(F.gross)}</span></div><div class="plr"><span>Total Expenses</span><span class="red">${cur(F.tExp)}</span></div><hr class="divr"><div style="text-align:center;padding:16px 0"><div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">NET PROFIT</div><div style="font-size:34px;font-weight:900;color:${isPro?'#16a34a':'var(--danger)'}">${cur(Math.abs(F.net))}</div><div style="margin-top:5px"><span class="badge ${isPro?'bg':'br'}">${isPro?'▲ Profit':'▼ Loss'}</span></div></div><hr class="divr"><div class="plr"><span style="font-size:12px;color:var(--muted)">মোট সদস্য</span><span style="font-size:12px">${F.m.length} জন</span></div><div class="plr"><span style="font-size:12px;color:var(--muted)">মোট Loan বিতরণ</span><span style="font-size:12px">${cur(F.tLoan)}</span></div><div class="plr"><span style="font-size:12px;color:var(--muted)">Outstanding</span><span style="font-size:12px;color:var(--warn)">${cur(F.outstanding)}</span></div><div class="plr"><span style="font-size:12px;color:var(--muted)">Cash in Hand</span><span style="font-size:12px;font-weight:700;color:#0f766e">${cur(F.cash)}</span></div>`;
+  // ── Net Summary Box আপডেট (Sheet এর মত) ──
+  const totalExpWithDraw = F.tExp + F.ownerDraw;
+  document.getElementById('plNet').innerHTML=`
+    <div class="plr"><span>Total Gross Income</span><span style="color:var(--accent);font-weight:700">${cur(F.gross)}</span></div>
+    <div class="plr"><span>Total Expenses</span><span class="red">${cur(totalExpWithDraw)}</span></div>
+    ${F.ownerDraw > 0 ? `<div class="plr"><span style="color:var(--muted)">(-) Cash Withdrawal</span><span style="color:var(--warn)">${cur(F.ownerDraw)}</span></div>` : ''}
+    <div class="plr"><span>Net Expenses</span><span class="red">${cur(F.tExp)}</span></div>
+    <hr class="divr">
+    <div style="text-align:center;padding:16px 0">
+        <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">NET PROFIT</div>
+        <div style="font-size:34px;font-weight:900;color:${isPro?'#16a34a':'var(--danger)'}">${cur(Math.abs(F.net))}</div>
+        <div style="margin-top:5px"><span class="badge ${isPro?'bg':'br'}">${isPro?'▲ Profit':'▼ Loss'}</span></div>
+    </div>
+    <hr class="divr">
+    <div class="plr"><span style="font-size:12px;color:var(--muted)">মোট সদস্য</span><span style="font-size:12px">${F.m.length} জন</span></div>
+    <div class="plr"><span style="font-size:12px;color:var(--muted)">মোট Loan বিতরণ</span><span style="font-size:12px">${cur(F.tLoan)}</span></div>
+    <div class="plr"><span style="font-size:12px;color:var(--muted)">Outstanding</span><span style="font-size:12px;color:var(--warn)">${cur(F.outstanding)}</span></div>
+    <div class="plr"><span style="font-size:12px;color:var(--muted)">Cash in Hand</span><span style="font-size:12px;font-weight:700;color:#0f766e">${cur(F.cash)}</span></div>`;
+    
   const monthly={};
   (D.collections||[]).forEach(r=>{const d=toDate(r.Date);if(!d)return;const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(!monthly[k])monthly[k]={c:0,e:0};monthly[k].c+=num(r['Collection Amount']);});
-  (D.expenses||[]).forEach(r=>{const d=toDate(r.Date);if(!d)return;const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(!monthly[k])monthly[k]={c:0,e:0};monthly[k].e+=num(r['Amount']);});
+  (D.expenses||[]).forEach(r=>{const d=toDate(r.Date);if(!d)return;if(r['Expense Head']==='Cash Withdrawal' || r['Expense Head']==='মালিকের উত্তোলন')return;const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(!monthly[k])monthly[k]={c:0,e:0};monthly[k].e+=num(r['Amount']);});
   const months=Object.keys(monthly).sort();const maxM=Math.max(...Object.values(monthly).flatMap(v=>[v.c,v.e]),1);
   document.getElementById('mChart').innerHTML=months.length?months.map(k=>`<div style="margin-bottom:5px"><div style="font-size:11px;color:var(--muted);margin-bottom:3px;font-weight:700">${k}</div><div class="br2" style="margin-bottom:2px"><div class="bl" style="width:80px;font-size:11px">Collection</div><div class="bt"><div class="bf" style="width:${(monthly[k].c/maxM*100).toFixed(1)}%;background:#059669">${cur(monthly[k].c)}</div></div></div><div class="br2"><div class="bl" style="width:80px;font-size:11px">Expense</div><div class="bt"><div class="bf" style="width:${(monthly[k].e/maxM*100).toFixed(1)}%;background:#dc2626">${cur(monthly[k].e)}</div></div></div></div>`).join(''):'<div class="nd">কোনো monthly data নেই</div>';
 }
@@ -1371,7 +1401,7 @@ function autoCalcLoan() {
   if(loan > 0) {
       document.getElementById('me_svc').value = loan * 0.10; 
       document.getElementById('me_sav_target').value = loan * 0.10; 
-      document.getElementById('me_ins').value = Math.ceil((loan / 1000) * 5); // 1000 এ 5 টাকা Insurance
+      document.getElementById('me_ins').value = Math.ceil((loan / 1000) * 5); 
   } else {
       document.getElementById('me_svc').value = '';
       document.getElementById('me_sav_target').value = '';
@@ -1808,6 +1838,8 @@ function buildFullSummaryReport(){
   const totOA  = odList.reduce((s,x)=>s+x.od.odAmt,0);
 
   const cats={};(D.expenses||[]).forEach(r=>{const k=r['Expense Head']||'Other';cats[k]=(cats[k]||0)+num(r['Amount']);});
+  
+  const filteredCats = Object.entries(cats).filter(([k]) => k !== 'Cash Withdrawal' && k !== 'মালিকের উত্তোলন').sort((a,b)=>b[1]-a[1]);
 
   return rptHeader('সামগ্রিক সারসংক্ষেপ', `মোট ${F.m.length} জন সদস্য`) + `
   <div class="card" style="margin-bottom:14px">
@@ -1835,7 +1867,7 @@ function buildFullSummaryReport(){
     </div>
     <div class="card">
       <div class="st">Expense বিস্তারিত</div>
-      ${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="plr"><span>${k}</span><span class="red">${cur(v)}</span></div>`).join('')||'<div class="plr">কোনো expense নেই</div>'}
+      ${filteredCats.map(([k,v])=>`<div class="plr"><span>${k}</span><span class="red">${cur(v)}</span></div>`).join('')||'<div class="plr">কোনো expense নেই</div>'}
       <div class="plt" style="color:var(--danger)"><span>Total Expenses</span><span>${cur(F.tExp)}</span></div>
     </div>
   </div>
