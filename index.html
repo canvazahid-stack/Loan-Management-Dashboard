@@ -992,6 +992,10 @@ tr:hover td { background:var(--surface-2); }
 .rpt-kpi-item .rv { font-size:20px; font-weight:800; }
 .rpt-kpi-item .rl { font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; margin-top:3px; }
 
+/* Fund Sub-tabs */
+.ftab-panel { display:none; animation:panelIn .25s var(--ease-out) both; }
+.ftab-panel.active { display:block; }
+
 /* ═══════════════════════════════════════════
    PRINT
 ═══════════════════════════════════════════ */
@@ -1256,10 +1260,32 @@ tr:hover td { background:var(--surface-2); }
 
     <!-- ── FUND STATUS ── -->
     <div id="tab-fund" class="tab-panel">
-      <div class="kpi-grid" id="fGrid"></div>
-      <div class="grid-2">
-        <div class="card"><div class="sec-title">Fund Flow</div><div id="fFlow"></div></div>
-        <div class="card"><div class="sec-title">Loan Portfolio</div><div id="fPort"></div></div>
+      <!-- Fund Sub-Tabs -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px" id="fundSubTabs">
+        <button class="mem-filter-btn active" data-ftab="overview" onclick="showFundTab('overview')">📊 Overview</button>
+        <button class="mem-filter-btn" data-ftab="cashflow" onclick="showFundTab('cashflow')">💵 Cash Flow</button>
+        <button class="mem-filter-btn" data-ftab="portfolio" onclick="showFundTab('portfolio')">📈 Loan Portfolio</button>
+      </div>
+
+      <!-- Sub-tab: Overview -->
+      <div id="ftab-overview" class="ftab-panel">
+        <div class="kpi-grid" id="fGrid"></div>
+      </div>
+
+      <!-- Sub-tab: Cash Flow -->
+      <div id="ftab-cashflow" class="ftab-panel" style="display:none">
+        <div class="card">
+          <div class="sec-title">💵 Cash Flow বিশ্লেষণ</div>
+          <div id="fFlow"></div>
+        </div>
+      </div>
+
+      <!-- Sub-tab: Loan Portfolio -->
+      <div id="ftab-portfolio" class="ftab-panel" style="display:none">
+        <div class="card">
+          <div class="sec-title">📈 Loan Portfolio</div>
+          <div id="fPort"></div>
+        </div>
       </div>
     </div>
 
@@ -1398,7 +1424,53 @@ tr:hover td { background:var(--surface-2); }
         </div>
       </div>
 
-      <!-- Fund Invest/Withdrawal -->
+      <!-- Loan Renewal -->
+      <div class="card mb-gap-lg">
+        <div class="sec-title">🔄 Loan নবায়ন (পুরনো Loan শেষ → নতুন Loan)</div>
+        <div class="info-callout">
+          💡 <strong>নিয়ম:</strong> সদস্য যদি আগের <strong>শেয়ার ফেরত না নেন</strong>, তাহলে নবায়নে শেয়ার ও ভর্তি ফি দিতে হবে না।
+          শেয়ার ফেরত নিলে নতুন এন্ট্রির মতো সব ফি দিতে হবে।
+        </div>
+        <div class="form-grid">
+          <div class="fitem">
+            <label>পুরনো সদস্য * (যার Loan নবায়ন হবে)</label>
+            <input type="text" id="rn_member_input" list="ce_member_list" placeholder="নাম বা ID টাইপ করুন..." oninput="fillRenewal()">
+            <input type="hidden" id="rn_member">
+          </div>
+          <div class="fitem">
+            <label>শেয়ার ফেরত নিয়েছেন?</label>
+            <select id="rn_share_returned" onchange="toggleRenewalFees()">
+              <option value="no">না (শেয়ার আছে — ফি লাগবে না)</option>
+              <option value="yes">হ্যাঁ (শেয়ার ফেরত — সব ফি দিতে হবে)</option>
+            </select>
+          </div>
+          <div class="fitem"><label>নতুন Loan তারিখ *</label><input type="date" id="rn_date"></div>
+          <div class="fitem"><label>নতুন Loan Amount *</label><input type="number" id="rn_loan" placeholder="0" oninput="calcRenewal()"></div>
+          <div class="fitem"><label>Service Charge (10%)</label><input type="number" id="rn_svc" placeholder="0" oninput="calcRenewal()"></div>
+          <div class="fitem"><label>Savings Target (10%)</label><input type="number" id="rn_sav" placeholder="0" oninput="calcRenewal()"></div>
+          <div class="fitem"><label>Installment Term (দিন)</label><input type="number" id="rn_term" placeholder="100" value="100" oninput="calcRenewal()"></div>
+          <div class="fitem"><label>Insurance</label><input type="number" id="rn_ins" placeholder="0"></div>
+
+          <!-- শেয়ার ফেরত নিলে দেখাবে -->
+          <div class="fitem" id="rn_share_wrap" style="display:none"><label>Share (নতুন)</label><input type="number" id="rn_share" placeholder="100" value="100"></div>
+          <div class="fitem" id="rn_adm_wrap" style="display:none"><label>Admission Fee</label><input type="number" id="rn_adm" placeholder="50" value="50"></div>
+          <div class="fitem" id="rn_pb_wrap" style="display:none"><label>Passbook Fee</label><input type="number" id="rn_pb" placeholder="30" value="30"></div>
+          <div class="fitem" id="rn_ff_wrap" style="display:none"><label>Form Fee</label><input type="number" id="rn_ff" placeholder="120" value="120"></div>
+        </div>
+
+        <div class="info-callout" id="rn_preview" style="display:none"></div>
+
+        <div style="background:var(--rose-bg);border:1px solid rgba(232,54,74,.25);border-radius:var(--r-sm);padding:12px 16px;margin-bottom:var(--gap);font-size:13px;color:var(--rose);display:none" id="rn_warn">
+          ⚠️ এই কাজটি করলে পুরনো সদস্যের Loan <strong>Archive</strong> হয়ে যাবে এবং নতুন Loan Cycle শুরু হবে। এটি পূর্বাবস্থায় ফেরানো যাবে না।
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-success" onclick="submitRenewal()">✓ Loan নবায়ন করুন</button>
+          <span class="fmsg" id="rn_msg"></span>
+        </div>
+      </div>
+
+<!-- Fund Invest/Withdrawal -->
       <div class="card mb-gap-lg">
         <div class="sec-title">💹 Fund Invest / Withdrawal</div>
         <p style="font-size:12px;color:var(--muted);margin-bottom:14px">তারিখসহ এন্ট্রি দিলে <strong>Owner's Initial Capital</strong> ও <strong>NET CASH IN HAND</strong> স্বয়ংক্রিয় আপডেট হবে।</p>
@@ -1492,8 +1564,8 @@ tr:hover td { background:var(--surface-2); }
     <button class="nav-bottom-item" data-tab="expenses"><span class="ni">📋</span><span class="nl">Expense</span></button>
   </nav>
 </div><!-- /#appContent -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js" crossorigin="anonymous"></script>
-<script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js" crossorigin="anonymous" defer onerror="console.warn('Croppie CDN failed — photo crop unavailable')"></script>
+<script defer>
 // ══════════════════════════════════════════════════════
 // CONFIG — PRESERVED EXACTLY
 // ══════════════════════════════════════════════════════
@@ -1550,6 +1622,7 @@ function showTab(tabName){
     ['ce_date','ee_date','sa_date','fi_date'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=td;});
   }
   if(tabName==='report') initReportTab();
+  if(tabName==='fund') showFundTab('overview');
   // scroll to top on mobile
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1719,11 +1792,26 @@ function getF(){
   const net=gross-tExp;
   const initialCap=num(s["Owner's Initial Capital"]||500000);
   const iCap=initialCap-ownerDraw;
-  const cash=num(s['NET CASH IN HAND']||s['Net Cash in Hand']||0);
-  const tShare=m.reduce((x,r)=>x+num(r['Share']),0);
-  const tShareRefund=e.filter(r=>expHead(r)==='Share Refund').reduce((x,r)=>x+num(r['Amount']),0);
-  const netShare=tShare-tShareRefund;
-  return{m,c,e,s,tAdm,tPb,tFf,tIns,tSC,tSav,tPri,tCol,tExp,tLoan,outstanding:tLoan-tPri,gross,net,iCap,initialCap,ownerDraw,cash,netShare};
+  // ── NET CASH IN HAND সঠিক সূত্র ──
+  const tPrincipalRec = c.reduce((x,r)=>x+num(r['Principal']),0);
+  const tSCRec        = c.reduce((x,r)=>x+num(r['Service Charge']),0);
+  const tSavingsIn    = c.filter(r=>num(r['Savings'])>0).reduce((x,r)=>x+num(r['Savings']),0);
+  const tSavingsOut   = c.filter(r=>num(r['Savings'])<0).reduce((x,r)=>x+Math.abs(num(r['Savings'])),0);
+  const tNetSavings   = tSavingsIn - tSavingsOut;
+  const tShareGross   = m.reduce((x,r)=>x+num(r['Share']),0);
+  const tShareRefund  = e.filter(r=>expHead(r)==='Share Refund').reduce((x,r)=>x+num(r['Amount']),0);
+  const tNetShare     = tShareGross - tShareRefund;
+  const tAdmFees      = m.reduce((x,r)=>x+num(r['Admission Fee']),0);
+  const tPbFees       = m.reduce((x,r)=>x+num(r['Passbook Fee']),0);
+  const tFormFees     = m.reduce((x,r)=>x+num(r['Form Fee']),0);
+  const tInsFees      = m.reduce((x,r)=>x+num(r['Insurance']),0);
+  const tFundWithdraw = e.filter(r=>{const h=expHead(r);return h==='Fund Withdrawal'||h==='Cash Withdrawal'||h==='মালিকের উত্তোলন';}).reduce((x,r)=>x+num(r['Amount']),0);
+  const tOperatingExp = e.filter(r=>{const h=expHead(r);return h!=='Share Refund'&&h!=='Fund Withdrawal'&&h!=='Cash Withdrawal'&&h!=='মালিকের উত্তোলন'&&h!=='Fund Invest';}).reduce((x,r)=>x+num(r['Amount']),0);
+  const totalCashIn   = num(s["Owner's Initial Capital"]||500000)+tPrincipalRec+tSCRec+tNetShare+tNetSavings+tAdmFees+tPbFees+tFormFees+tInsFees;
+  const totalCashOut  = tLoan+tOperatingExp+tFundWithdraw;
+  const cash = totalCashIn - totalCashOut;
+  // netShare: tNetShare already calculated above
+  return{m,c,e,s,tAdm,tPb,tFf,tIns,tSC,tSav,tPri,tCol,tExp,tLoan,outstanding:tLoan-tPri,gross,net,iCap,initialCap,ownerDraw,cash,netShare:tNetShare};
 }
 
 function memberIsActive(mem){
@@ -2031,28 +2119,89 @@ function renderFund(){
     {i:'⚖️',v:cur(F.outstanding),l:'Outstanding (Field)',c1:'#b45309',c2:'#f59c0c',cg:'rgba(245,156,12,.12)'},
     {i:'💰',v:cur(F.tSav),      l:'Net Savings',         c1:'#0369a1',c2:'#1469c7',cg:'rgba(20,105,199,.12)'},
     {i:'📉',v:cur(F.tExp),      l:'Operating Expenses',  c1:'#b91c1c',c2:'#e8364a',cg:'rgba(232,54,74,.12)'},
-    {i:'💵',v:cur(F.cash),      l:'NET CASH IN HAND',    c1:'#15803d',c2:'#00b37a',cg:'rgba(0,179,122,.15)'},
+    {i:'💵',v:cur(F.cash),      l:'NET CASH IN HAND',    c1:F.cash>=0?'#15803d':'#b91c1c',c2:F.cash>=0?'#00b37a':'#e8364a',cg:F.cash>=0?'rgba(0,179,122,.15)':'rgba(232,54,74,.15)',s:F.cash<0?'⚠️ মাইনাস (ঘাটতি)':'✓ ইতিবাচক'},
   ].map(k=>`
     <div class="kpi-card" style="--kc1:${k.c1};--kc2:${k.c2};--kc-glow:${k.cg}">
       <span class="kpi-icon">${k.i}</span>
       <div class="kpi-value">${k.v}</div>
       <div class="kpi-label">${k.l}</div>
     </div>`).join('');
-  document.getElementById('fFlow').innerHTML=[
-    {l:'Initial Capital',v:F.initialCap,max:F.initialCap,c:'#1469c7'},
-    {l:'Principal Recovered',v:F.tPri,max:F.tLoan,c:'#00b37a'},
-    {l:'Loan Outstanding',v:F.outstanding,max:F.tLoan,c:'#f59c0c'},
-    {l:'Net Cash in Hand',v:F.cash,max:F.initialCap,c:'#0f766e'},
-  ].map(f=>`
-    <div style="margin-bottom:15px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-        <span style="font-size:13px;color:var(--text-2)">${f.l}</span>
-        <span style="font-size:13px;font-weight:700;color:${f.c}">${cur(f.v)}</span>
-      </div>
-      <div class="prog-track">
-        <div class="prog-fill" style="width:${f.max>0?Math.min(f.v/f.max*100,100).toFixed(1):0}%;background:${f.c}"></div>
-      </div>
-    </div>`).join('');
+  const cashColor=F.cash>=0?'#0f766e':'#b91c1c';
+  const cashLabel=F.cash>=0?'✓ ইতিবাচক':'⚠️ ঘাটতি (মাইনাস)';
+  // সূত্রের সব line items
+  const _c=D.collections||[];
+  const _e=D.expenses||[];
+  const _m=D.members||[];
+  const _tPri   =_c.reduce((x,r)=>x+num(r['Principal']),0);
+  const _tSCr   =_c.reduce((x,r)=>x+num(r['Service Charge']),0);
+  const _tSavIn =_c.filter(r=>num(r['Savings'])>0).reduce((x,r)=>x+num(r['Savings']),0);
+  const _tSavOut=_c.filter(r=>num(r['Savings'])<0).reduce((x,r)=>x+Math.abs(num(r['Savings'])),0);
+  const _netSav =_tSavIn-_tSavOut;
+  const _tShare =_m.reduce((x,r)=>x+num(r['Share']),0);
+  const _tRefund=_e.filter(r=>expHead(r)==='Share Refund').reduce((x,r)=>x+num(r['Amount']),0);
+  const _netShare=_tShare-_tRefund;
+  const _tAdm  =_m.reduce((x,r)=>x+num(r['Admission Fee']),0);
+  const _tPb   =_m.reduce((x,r)=>x+num(r['Passbook Fee']),0);
+  const _tForm =_m.reduce((x,r)=>x+num(r['Form Fee']),0);
+  const _tIns  =_m.reduce((x,r)=>x+num(r['Insurance']),0);
+  const _tOpExp=_e.filter(r=>{const h=expHead(r);return h!=='Share Refund'&&h!=='Fund Withdrawal'&&h!=='Cash Withdrawal'&&h!=='মালিকের উত্তোলন'&&h!=='Fund Invest';}).reduce((x,r)=>x+num(r['Amount']),0);
+  const _tFundW=_e.filter(r=>{const h=expHead(r);return h==='Fund Withdrawal'||h==='Cash Withdrawal'||h==='মালিকের উত্তোলন';}).reduce((x,r)=>x+num(r['Amount']),0);
+
+  const inRows=[
+    {l:'(+) মালিকের মূলধন',         v:F.initialCap,  c:'#1469c7'},
+    {l:'(+) Principal আদায়',         v:_tPri,          c:'#7c3aed'},
+    {l:'(+) Service Charge আদায়',    v:_tSCr,          c:'#0f766e'},
+    {l:'(+) Net Share Capital',       v:_netShare,      c:'#0891b2', note:_tRefund>0?'(Share '+cur(_tShare)+' − Refund '+cur(_tRefund)+')':''},
+    {l:'(+) Net Savings',             v:_netSav,        c:'#059669', note:_tSavOut>0?'(জমা '+cur(_tSavIn)+' − উত্তোলন '+cur(_tSavOut)+')':''},
+    {l:'(+) Admission Fee',           v:_tAdm,          c:'#0ab5c4'},
+    {l:'(+) Passbook Fee',            v:_tPb,           c:'#0ab5c4'},
+    {l:'(+) Form Fee',                v:_tForm,         c:'#0ab5c4'},
+    {l:'(+) Insurance',               v:_tIns,          c:'#0ab5c4'},
+  ];
+  const outRows=[
+    {l:'(−) Loan বিতরণ',             v:F.tLoan,        c:'#f59c0c'},
+    {l:'(−) Operating Expenses',      v:_tOpExp,        c:'#e8364a'},
+    {l:'(−) Fund Withdrawal',         v:_tFundW,        c:'#8b5cf6'},
+  ];
+  const totalIn=inRows.reduce((s,r)=>s+r.v,0);
+  const totalOut=outRows.reduce((s,r)=>s+r.v,0);
+
+  const makeRow=(r)=>`
+    <div class="pl-row">
+      <span style="font-size:12px;display:flex;flex-direction:column;gap:2px">
+        ${r.l}
+        ${r.note?`<span style="font-size:10px;color:var(--muted)">${r.note}</span>`:''}
+      </span>
+      <span style="font-size:13px;font-weight:700;color:${r.c};white-space:nowrap">${cur(r.v)}</span>
+    </div>`;
+
+  document.getElementById('fFlow').innerHTML=`
+    <div style="padding:14px;background:${F.cash>=0?'var(--mint-bg)':'var(--rose-bg)'};border-radius:var(--r-sm);border:1px solid ${F.cash>=0?'rgba(0,179,122,.25)':'rgba(232,54,74,.25)'};margin-bottom:16px">
+      <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">NET CASH IN HAND</div>
+      <div style="font-family:'Sora',sans-serif;font-size:28px;font-weight:900;color:${cashColor}">${cur(F.cash)}</div>
+      <div style="font-size:11px;margin-top:4px;color:${cashColor}">${cashLabel}</div>
+    </div>
+
+    <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--mint);display:inline-block"></span> CASH IN
+    </div>
+    ${inRows.map(makeRow).join('')}
+    <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--mint-bg);border-radius:var(--r-sm);margin-top:4px;font-size:12px;font-weight:700">
+      <span>মোট Cash IN</span><span style="color:var(--mint)">${cur(totalIn)}</span>
+    </div>
+
+    <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;display:flex;align-items:center;gap:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--rose);display:inline-block"></span> CASH OUT
+    </div>
+    ${outRows.map(makeRow).join('')}
+    <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--rose-bg);border-radius:var(--r-sm);margin-top:4px;font-size:12px;font-weight:700">
+      <span>মোট Cash OUT</span><span style="color:var(--rose)">${cur(totalOut)}</span>
+    </div>
+
+    <div class="pl-total" style="color:${cashColor};margin-top:12px;font-size:14px">
+      <span>= NET CASH IN HAND</span>
+      <span>${cur(F.cash)}</span>
+    </div>`;
   document.getElementById('fPort').innerHTML=`
     <div class="table-wrap tw-resp" style="max-height:320px;overflow-y:auto">
       <table>
@@ -2319,57 +2468,199 @@ function normalizePhoneClient(raw){
 // ══════════════════════════════════════════════════════
 // PHOTO / CROP (PRESERVED)
 // ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+// PHOTO UPLOAD & CROP — FIXED
+// ══════════════════════════════════════════════════════
+
+// Canvas কে iteratively compress করে 100KB এর মধ্যে আনে
 function compressCanvasUnder100k(canvas){
-  return new Promise(function(resolve){
-    var q=0.88;
-    function step(){
-      var url=canvas.toDataURL('image/jpeg',q);
-      var b64=url.split(',')[1];
-      var bytes=Math.ceil(b64.length*0.75);
-      if(bytes<=100*1024||q<0.42){resolve(b64);return;}
-      q-=0.07;
-      if(bytes>110*1024){var nw=Math.max(120,Math.floor(canvas.width*0.88)),nh=Math.max(120,Math.floor(canvas.height*0.88));var c2=document.createElement('canvas');c2.width=nw;c2.height=nh;c2.getContext('2d').drawImage(canvas,0,0,nw,nh);canvas=c2;}
+  return new Promise(function(resolve, reject){
+    try {
+      var w = canvas.width || 480;
+      var h = canvas.height || 480;
+      // Max dimension 600px
+      if(w > 600 || h > 600){
+        var ratio = Math.min(600/w, 600/h);
+        var c2 = document.createElement('canvas');
+        c2.width  = Math.round(w * ratio);
+        c2.height = Math.round(h * ratio);
+        c2.getContext('2d').drawImage(canvas, 0, 0, c2.width, c2.height);
+        canvas = c2;
+      }
+      var q = 0.85;
+      var attempts = 0;
+      function step(){
+        attempts++;
+        try {
+          var dataUrl = canvas.toDataURL('image/jpeg', q);
+          var b64 = dataUrl.split(',')[1];
+          var bytes = Math.ceil(b64.length * 0.75);
+          if(bytes <= 100 * 1024 || q <= 0.35 || attempts > 15){
+            resolve(b64);
+            return;
+          }
+          // আরো ছোট করা দরকার
+          q = parseFloat((q - 0.08).toFixed(2));
+          if(bytes > 200 * 1024){
+            // Resolution কমাই
+            var nw = Math.max(100, Math.floor(canvas.width * 0.80));
+            var nh = Math.max(100, Math.floor(canvas.height * 0.80));
+            var c3 = document.createElement('canvas');
+            c3.width = nw; c3.height = nh;
+            c3.getContext('2d').drawImage(canvas, 0, 0, nw, nh);
+            canvas = c3;
+          }
+          setTimeout(step, 0); // stack overflow এড়াতে async
+        } catch(e) { reject(e); }
+      }
       step();
-    }
-    step();
+    } catch(e) { reject(e); }
   });
 }
+
+// ফাইল picker এর onchange থেকে ছবি নিয়ে crop modal খোলে
 function onPickPhoto(mode){
-  cropTarget=mode;
-  var inp=document.getElementById(mode==='add'?'me_photo_file':'em_photo_file');
-  if(!inp||!inp.files||!inp.files[0])return;
-  var r=new FileReader();
-  r.onload=function(ev){openCropModal(ev.target.result);};
-  r.readAsDataURL(inp.files[0]);
+  cropTarget = mode;
+  var inputId = mode === 'add' ? 'me_photo_file' : 'em_photo_file';
+  var inp = document.getElementById(inputId);
+  if(!inp || !inp.files || !inp.files[0]) return;
+  var file = inp.files[0];
+  // Size check: 10MB limit
+  if(file.size > 10 * 1024 * 1024){
+    toast('ছবি ১০MB এর বেশি হতে পারবে না', 'error');
+    inp.value = '';
+    return;
+  }
+  var r = new FileReader();
+  r.onload = function(ev){ openCropModal(ev.target.result); };
+  r.onerror = function(){ toast('ছবি পড়তে সমস্যা হয়েছে', 'error'); };
+  r.readAsDataURL(file);
 }
+
+// Crop modal খোলে এবং Croppie initialize করে
 function openCropModal(dataUrl){
-  document.getElementById('cropModal').classList.add('open');
-  var host=document.getElementById('cropHost');
-  host.innerHTML='';
-  if(cropApi){try{cropApi.destroy();}catch(e){}cropApi=null;}
-  if(typeof Croppie==='undefined'){alert('Croppie লোড হয়নি');return;}
-  cropApi=new Croppie(host,{viewport:{width:200,height:200,type:'square'},boundary:{width:320,height:320},showZoomer:true});
-  cropApi.bind({url:dataUrl});
+  if(!dataUrl){ toast('ছবির data পাওয়া যায়নি', 'error'); return; }
+
+  // Croppie CDN লোড হয়েছে কিনা চেক
+  if(typeof Croppie === 'undefined'){
+    toast('Croppie library লোড হয়নি। Internet connection চেক করুন।', 'error');
+    return;
+  }
+
+  var modal = document.getElementById('cropModal');
+  var host  = document.getElementById('cropHost');
+  if(!modal || !host){ toast('Crop modal পাওয়া যায়নি', 'error'); return; }
+
+  // পুরনো instance destroy করা
+  if(cropApi){
+    try { cropApi.destroy(); } catch(e){}
+    cropApi = null;
+  }
+  host.innerHTML = '';
+
+  // Viewport size: mobile-friendly
+  var vpSize = Math.min(200, Math.floor(window.innerWidth * 0.45));
+  var bdSize  = Math.min(320, Math.floor(window.innerWidth * 0.75));
+
+  try {
+    cropApi = new Croppie(host, {
+      viewport:   { width: vpSize, height: vpSize, type: 'square' },
+      boundary:   { width: bdSize, height: bdSize },
+      showZoomer: true,
+      enableExif: true  // ছবির orientation ঠিক রাখে
+    });
+    cropApi.bind({ url: dataUrl }).catch(function(e){
+      toast('ছবি load করতে সমস্যা: ' + e.message, 'error');
+    });
+    modal.classList.add('open');
+  } catch(e) {
+    toast('Crop tool চালু করতে সমস্যা: ' + e.message, 'error');
+  }
 }
-function closeCropModal(){document.getElementById('cropModal').classList.remove('open');}
+
+// Crop modal বন্ধ করে
+function closeCropModal(){
+  var modal = document.getElementById('cropModal');
+  if(modal) modal.classList.remove('open');
+  if(cropApi){
+    try { cropApi.destroy(); } catch(e){}
+    cropApi = null;
+  }
+}
+
+// Crop apply করে base64 সংরক্ষণ করে
 function applyCrop(){
-  if(!cropApi)return;
-  cropApi.result({type:'canvas',size:{width:480,height:480},format:'jpeg',quality:0.88}).then(function(canvas){
-    return compressCanvasUnder100k(canvas);
-  }).then(function(b64){
-    if(cropTarget==='add'){
-      document.getElementById('me_photo_b64').value=b64;
-      var img=document.getElementById('me_photo_thumb');
-      img.src='data:image/jpeg;base64,'+b64;
-      document.getElementById('me_photo_preview_box').style.display='flex';
-    }else{
-      document.getElementById('em_photo_b64').value=b64;
-      var img2=document.getElementById('em_photo_thumb');
-      img2.src='data:image/jpeg;base64,'+b64;img2.style.display='block';
-      document.getElementById('em_photo_preview_box').style.display='flex';
-    }
-    closeCropModal();
+  if(!cropApi){ toast('Crop tool প্রস্তুত নেই', 'error'); return; }
+
+  var btn = document.querySelector('[onclick="applyCrop()"]');
+  if(btn){ btn.disabled = true; btn.textContent = 'প্রসেস হচ্ছে...'; }
+
+  // type:'base64' সরাসরি base64 data URL দেয় — সব browser এ নির্ভরযোগ্য
+  cropApi.result({
+    type:    'base64',
+    size:    { width: 480, height: 480 },
+    format:  'jpeg',
+    quality: 0.88,
+    circle:  false
+  }).then(function(dataUrl){
+    // dataUrl = 'data:image/jpeg;base64,....'
+    var b64 = dataUrl.indexOf(',') !== -1 ? dataUrl.split(',')[1] : dataUrl;
+
+    // 100KB এর মধ্যে compress করা
+    var tempCanvas = document.createElement('canvas');
+    tempCanvas.width  = 480;
+    tempCanvas.height = 480;
+    var ctx = tempCanvas.getContext('2d');
+    var img = new Image();
+    img.onload = function(){
+      ctx.drawImage(img, 0, 0, 480, 480);
+      compressCanvasUnder100k(tempCanvas).then(function(compressedB64){
+        applyPhotoToForm(compressedB64);
+        closeCropModal();
+        if(btn){ btn.disabled = false; btn.textContent = '✓ ক্রপ সংরক্ষণ'; }
+      }).catch(function(e){
+        // compress fail হলে original b64 ব্যবহার করি
+        applyPhotoToForm(b64);
+        closeCropModal();
+        if(btn){ btn.disabled = false; btn.textContent = '✓ ক্রপ সংরক্ষণ'; }
+      });
+    };
+    img.onerror = function(){
+      // সরাসরি b64 use করি
+      applyPhotoToForm(b64);
+      closeCropModal();
+      if(btn){ btn.disabled = false; btn.textContent = '✓ ক্রপ সংরক্ষণ'; }
+    };
+    img.src = 'data:image/jpeg;base64,' + b64;
+
+  }).catch(function(e){
+    toast('ছবি crop করতে সমস্যা: ' + (e.message || e), 'error');
+    if(btn){ btn.disabled = false; btn.textContent = '✓ ক্রপ সংরক্ষণ'; }
   });
+}
+
+// Crop করা ছবি form এ set করে
+function applyPhotoToForm(b64){
+  if(!b64){ toast('ছবির data পাওয়া যায়নি', 'error'); return; }
+  var dataUrl = 'data:image/jpeg;base64,' + b64;
+
+  if(cropTarget === 'add'){
+    var b64El  = document.getElementById('me_photo_b64');
+    var imgEl  = document.getElementById('me_photo_thumb');
+    var prevEl = document.getElementById('me_photo_preview_box');
+    if(b64El)  b64El.value = b64;
+    if(imgEl){ imgEl.src = dataUrl; imgEl.style.display = 'block'; }
+    if(prevEl) prevEl.style.display = 'flex';
+    toast('ছবি সংরক্ষিত হয়েছে ✓', 'success');
+  } else {
+    var b64El2  = document.getElementById('em_photo_b64');
+    var imgEl2  = document.getElementById('em_photo_thumb');
+    var prevEl2 = document.getElementById('em_photo_preview_box');
+    if(b64El2)  b64El2.value = b64;
+    if(imgEl2){ imgEl2.src = dataUrl; imgEl2.style.display = 'block'; }
+    if(prevEl2) prevEl2.style.display = 'flex';
+    toast('ছবি সংরক্ষিত হয়েছে ✓', 'success');
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2780,11 +3071,180 @@ function printReport(){
   setTimeout(()=>{document.querySelectorAll('.rpt-print-header').forEach(el=>el.style.display='none');},500);
 }
 
+
+// ══════════════════════════════════════════════════════
+// LOAN RENEWAL FUNCTIONS
+// ══════════════════════════════════════════════════════
+function fillRenewal(){
+  var inputEl=document.getElementById('rn_member_input');
+  if(!inputEl)return;
+  var id=inputEl.value.split(' — ')[0].trim();
+  document.getElementById('rn_member').value=id;
+  var mem=(D.members||[]).find(m=>String(m['Member ID'])===String(id));
+  var preview=document.getElementById('rn_preview');
+  var warn=document.getElementById('rn_warn');
+  if(!mem){
+    if(preview)preview.style.display='none';
+    if(warn)warn.style.display='none';
+    return;
+  }
+  // Auto fill loan amount, term, svc from previous loan
+  var loan=num(mem['Loan Amount'])||0;
+  var term=num(mem['Installment Term'])||100;
+  var svc=Math.round(loan*0.10);
+  var sav=Math.round(loan*0.10);
+  var ins=Math.ceil((loan/1000)*5);
+  document.getElementById('rn_loan').value=loan||'';
+  document.getElementById('rn_term').value=term;
+  document.getElementById('rn_svc').value=svc||0;
+  document.getElementById('rn_sav').value=sav||0;
+  document.getElementById('rn_ins').value=ins||0;
+  if(!document.getElementById('rn_date').value){
+    document.getElementById('rn_date').value=today();
+  }
+  calcRenewal();
+  if(warn)warn.style.display='block';
+}
+
+function toggleRenewalFees(){
+  var returned=document.getElementById('rn_share_returned').value==='yes';
+  ['rn_share_wrap','rn_adm_wrap','rn_pb_wrap','rn_ff_wrap'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.style.display=returned?'':'none';
+  });
+  calcRenewal();
+}
+
+function calcRenewal(){
+  var loan=num(document.getElementById('rn_loan').value)||0;
+  var svc=num(document.getElementById('rn_svc').value)||0;
+  var sav=num(document.getElementById('rn_sav').value)||0;
+  var term=num(document.getElementById('rn_term').value)||100;
+  var returned=document.getElementById('rn_share_returned').value==='yes';
+
+  var share=returned?num(document.getElementById('rn_share').value)||0:0;
+  var adm=returned?num(document.getElementById('rn_adm').value)||0:0;
+  var pb=returned?num(document.getElementById('rn_pb').value)||0:0;
+  var ff=returned?num(document.getElementById('rn_ff').value)||0:0;
+
+  var totalPayable=loan+svc;
+  var totalColl=loan+svc+sav;
+  var inst=term>0?Math.ceil(totalColl/term):0;
+
+  var preview=document.getElementById('rn_preview');
+  if(!preview)return;
+  if(loan>0){
+    preview.style.display='block';
+    var feeNote=returned
+      ?'শেয়ার: '+cur(share)+' | Admission: '+cur(adm)+' | Passbook: '+cur(pb)+' | Form: '+cur(ff)
+      :'শেয়ার ফেরত নেননি — ফি মওকুফ ✓';
+    preview.innerHTML='নতুন Loan: <strong>'+cur(loan)+'</strong> | S.Charge: <strong>'+cur(svc)+'</strong> | Savings: <strong>'+cur(sav)+'</strong> | মোট পাওনা: <strong>'+cur(totalPayable)+'</strong> | Installment: <strong>'+cur(inst)+'</strong>/কিস্তি<br><span style="font-size:12px;color:var(--muted)">'+feeNote+'</span>';
+  } else {
+    preview.style.display='none';
+  }
+}
+
+async function submitRenewal(){
+  var id=document.getElementById('rn_member').value;
+  var mem=(D.members||[]).find(m=>String(m['Member ID'])===String(id));
+  if(!id||!mem){showMsg('rn_msg',false,'সদস্য বেছে নিন');return;}
+
+  var dt=document.getElementById('rn_date').value;
+  if(!dt){showMsg('rn_msg',false,'তারিখ দিন');return;}
+
+  var loan=num(document.getElementById('rn_loan').value);
+  if(!loan||loan<=0){showMsg('rn_msg',false,'Loan Amount দিন');return;}
+
+  var returned=document.getElementById('rn_share_returned').value==='yes';
+  var svc=num(document.getElementById('rn_svc').value)||Math.round(loan*0.10);
+  var sav=num(document.getElementById('rn_sav').value)||Math.round(loan*0.10);
+  var term=num(document.getElementById('rn_term').value)||100;
+  var ins=num(document.getElementById('rn_ins').value)||0;
+  var totalColl=loan+svc+sav;
+  var inst=term>0?Math.ceil(totalColl/term):0;
+
+  // শেয়ার ফেরত নিলে নতুন ফি, না নিলে শূন্য
+  var share=returned?(num(document.getElementById('rn_share').value)||100):0;
+  var adm  =returned?(num(document.getElementById('rn_adm').value)||50):0;
+  var pb   =returned?(num(document.getElementById('rn_pb').value)||30):0;
+  var ff   =returned?(num(document.getElementById('rn_ff').value)||120):0;
+
+  if(!confirm((returned?'শেয়ার ফেরত নেওয়া হয়েছে — সব ফি সহ। ':'শেয়ার ফেরত নেননি — ফি মওকুফ। ')+'সদস্য: '+mem.Name+' এর Loan নবায়ন করবেন?')){return;}
+
+  var btn=document.querySelector('[onclick="submitRenewal()"]');
+  if(btn){btn.disabled=true;btn.textContent='নবায়ন হচ্ছে...';}
+
+  try{
+    var data={
+      'Member ID':         id,
+      'Loan Receved Date': dt,
+      'Loan Amount':       loan,
+      'Service Charge':    svc,
+      'Savings Target':    sav,
+      'Total Loan Payable':loan+svc,
+      'Installment Term':  term,
+      'Installment Amount':inst,
+      'Insurance':         ins,
+      'Share':             share,
+      'Admission Fee':     adm,
+      'Passbook Fee':      pb,
+      'Form Fee':          ff,
+      'share_returned':    returned
+    };
+    var res=await postData('renew_loan',data);
+    showMsg('rn_msg',res.success,res.success
+      ?'✅ Loan নবায়ন হয়েছে! নতুন ID: '+res.newMemberId+' (Cycle '+res.cycle+')'
+      :res.message||'Error');
+    if(res.success){
+      // Form reset
+      ['rn_member_input','rn_loan','rn_svc','rn_sav','rn_ins'].forEach(function(i){
+        var el=document.getElementById(i);if(el)el.value='';
+      });
+      document.getElementById('rn_member').value='';
+      document.getElementById('rn_preview').style.display='none';
+      document.getElementById('rn_warn').style.display='none';
+      document.getElementById('rn_share_returned').value='no';
+      toggleRenewalFees();
+      populateMemSelect();
+      await loadData(false);
+    }
+  }catch(err){showMsg('rn_msg',false,'Error: '+err.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='✓ Loan নবায়ন করুন';}}
+}
+
+// ══════════════════════════════════════════════════════
+// FUND SUB-TABS
+// ══════════════════════════════════════════════════════
+function showFundTab(name){
+  // Sub-tab panels
+  document.querySelectorAll('.ftab-panel').forEach(function(p){
+    p.style.display='none';
+    p.classList.remove('active');
+  });
+  var panel=document.getElementById('ftab-'+name);
+  if(panel){
+    panel.style.display='block';
+    panel.classList.add('active');
+  }
+  // Sub-tab buttons
+  document.querySelectorAll('#fundSubTabs button').forEach(function(b){
+    b.classList.toggle('active', b.dataset.ftab===name);
+  });
+}
+
 // ══════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════
-checkSess();
-setInterval(()=>{if(sessionStorage.getItem(SK)){loadData(false);}},5*60*1000);
+// DOM ready হলে init করি
+function _init(){
+  checkSess();
+  setInterval(function(){if(sessionStorage.getItem(SK)){loadData(false);}},5*60*1000);
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',_init);
+} else {
+  _init();
+}
 </script>
 </body>
 </html>
