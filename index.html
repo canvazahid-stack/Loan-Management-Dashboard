@@ -1362,7 +1362,7 @@ tr:hover td { background:var(--surface-2); }
           <div class="fitem"><label>তারিখ *</label><input type="date" id="ee_date" required></div>
           <div class="fitem">
             <label>Expense Head *</label>
-            <select id="ee_head">
+            <select id="ee_head" onchange="toggleShareRefundFields()">
               <option>General Office</option>
               <option>Staff Expenses</option>
               <option>Stationery &amp; Printing</option>
@@ -1372,7 +1372,22 @@ tr:hover td { background:var(--surface-2); }
               <option>Cash Withdrawal</option>
             </select>
           </div>
-          <div class="fitem"><label>Amount *</label><input type="number" id="ee_amt" placeholder="0" min="0" step="1" required></div>
+          <div class="fitem" id="ee_amount_wrap"><label>Amount *</label><input type="number" id="ee_amt" placeholder="0" min="0" step="1" required></div>
+          <div class="fitem" id="ee_sr_member_wrap" style="display:none">
+            <label>Member *</label>
+            <input type="text" id="ee_sr_member_input" list="ce_member_list" placeholder="নাম বা ID টাইপ করুন..." oninput="fillShareRefund()">
+            <input type="hidden" id="ee_sr_member">
+          </div>
+          <div class="fitem" id="ee_sr_balance_wrap" style="display:none"><label>Current Share Balance</label><input type="number" id="ee_sr_balance" readonly placeholder="Auto"></div>
+          <div class="fitem" id="ee_sr_amount_wrap" style="display:none"><label>Refund Amount *</label><input type="number" id="ee_sr_amount" placeholder="0" min="1" step="1" oninput="syncShareRefundAmount()"></div>
+          <div class="fitem" id="ee_sr_type_wrap" style="display:none">
+            <label>Refund Type</label>
+            <select id="ee_sr_type">
+              <option>Full Refund</option>
+              <option>Partial Refund</option>
+            </select>
+          </div>
+          <div class="fitem full" id="ee_sr_reason_wrap" style="display:none"><label>Reason</label><input type="text" id="ee_sr_reason" placeholder="কারণ লিখুন"></div>
           <div class="fitem"><label>Details</label><input type="text" id="ee_det" placeholder="ঐচ্ছিক"></div>
           <div class="fitem full"><label>Remarks</label><input type="text" id="ee_rem" placeholder="ঐচ্ছিক"></div>
         </div>
@@ -1428,8 +1443,8 @@ tr:hover td { background:var(--surface-2); }
       <div class="card mb-gap-lg">
         <div class="sec-title">🔄 Loan নবায়ন (পুরনো Loan শেষ → নতুন Loan)</div>
         <div class="info-callout">
-          💡 <strong>নিয়ম:</strong> সদস্য যদি আগের <strong>শেয়ার ফেরত না নেন</strong>, তাহলে নবায়নে শেয়ার ও ভর্তি ফি দিতে হবে না।
-          শেয়ার ফেরত নিলে নতুন এন্ট্রির মতো সব ফি দিতে হবে।
+          💡 <strong>নিয়ম:</strong> সদস্য যদি আগের <strong>শেয়ার ফেরত না নেন</strong>, তাহলে নবায়নে শুধু শেয়ার ও ভর্তি ফি দিতে হবে না।
+          Passbook, Form, Insurance সহ বাকি সব নতুন সদস্যের মতো থাকবে।
         </div>
         <div class="form-grid">
           <div class="fitem">
@@ -1451,11 +1466,11 @@ tr:hover td { background:var(--surface-2); }
           <div class="fitem"><label>Installment Term (দিন)</label><input type="number" id="rn_term" placeholder="100" value="100" oninput="calcRenewal()"></div>
           <div class="fitem"><label>Insurance</label><input type="number" id="rn_ins" placeholder="0"></div>
 
-          <!-- শেয়ার ফেরত নিলে দেখাবে -->
+          <!-- শেয়ার ফেরত নিলে শুধু Share ও Admission দেখাবে -->
           <div class="fitem" id="rn_share_wrap" style="display:none"><label>Share (নতুন)</label><input type="number" id="rn_share" placeholder="100" value="100"></div>
           <div class="fitem" id="rn_adm_wrap" style="display:none"><label>Admission Fee</label><input type="number" id="rn_adm" placeholder="50" value="50"></div>
-          <div class="fitem" id="rn_pb_wrap" style="display:none"><label>Passbook Fee</label><input type="number" id="rn_pb" placeholder="30" value="30"></div>
-          <div class="fitem" id="rn_ff_wrap" style="display:none"><label>Form Fee</label><input type="number" id="rn_ff" placeholder="120" value="120"></div>
+          <div class="fitem" id="rn_pb_wrap"><label>Passbook Fee</label><input type="number" id="rn_pb" placeholder="30" value="30"></div>
+          <div class="fitem" id="rn_ff_wrap"><label>Form Fee</label><input type="number" id="rn_ff" placeholder="120" value="120"></div>
         </div>
 
         <div class="info-callout" id="rn_preview" style="display:none"></div>
@@ -1571,10 +1586,10 @@ tr:hover td { background:var(--surface-2); }
 // ══════════════════════════════════════════════════════
 const API_URL='https://script.google.com/macros/s/AKfycbykoQLar5WI5B-OR4iPOAFbH2vgBsuf4xVW8FjQvpyOqdq1REcEjwWx9fFmGILGASOfdg/exec';
 const SK='lms_v3';
-let D={members:[],collections:[],expenses:[],summary:{},lastUpdated:''};
+let D={members:[],collections:[],expenses:[],shareRefunds:[],summary:{},lastUpdated:''};
 let memFilter='active';
 let cropApi=null,cropTarget=null;
-const EXP_NON_OPERATING=new Set(['Cash Withdrawal','মালিকের উত্তোলন','Fund Invest','Fund Withdrawal']);
+const EXP_NON_OPERATING=new Set(['Cash Withdrawal','মালিকের উত্তোলন','Fund Invest','Fund Withdrawal','Share Refund']);
 const cur=n=>'৳'+Number(n||0).toLocaleString('en-IN');
 const num=n=>Number(n||0);
 
@@ -1638,7 +1653,7 @@ document.getElementById('navBottom').addEventListener('click',function(e){
 });
 
 // ── LOGIN ──
-function doLogin(){
+async function doLogin(){
   try {
     var u=(document.getElementById('lu').value||'').trim();
     var p=(document.getElementById('lp').value||'');
@@ -1649,24 +1664,15 @@ function doLogin(){
       errEl.style.display='block';
       return;
     }
-    var USERS=[
-      {u:'',  p:'', n:''},
-      {u:'', p:'', n:''}
-    ];
-    var found=null;
-    for(var i=0;i<USERS.length;i++){
-      if(USERS[i].u.toLowerCase()===u.toLowerCase() && USERS[i].p===p){
-        found=USERS[i]; break;
-      }
-    }
-    if(found){
-      try{ sessionStorage.setItem(SK, JSON.stringify({u:found.u,n:found.n})); }catch(e){}
+    var res=await postData('login',{u:u,p:p});
+    if(res&&res.success&&res.user){
+      try{ sessionStorage.setItem(SK, JSON.stringify({u:res.user.u,n:res.user.n})); }catch(e){}
       document.getElementById('loginPage').style.display='none';
-      document.getElementById('uname').textContent=found.n;
+      document.getElementById('uname').textContent=res.user.n;
       document.getElementById('appContent').style.display='block';
       loadData(true);
     } else {
-      errEl.textContent='❌ Username বা Password ভুল';
+      errEl.textContent='❌ '+((res&&res.message)||'Username বা Password ভুল');
       errEl.style.display='block';
       document.getElementById('lp').value='';
       document.getElementById('lp').focus();
@@ -1799,8 +1805,8 @@ function getF(){
   const tSavingsOut   = c.filter(r=>num(r['Savings'])<0).reduce((x,r)=>x+Math.abs(num(r['Savings'])),0);
   const tNetSavings   = tSavingsIn - tSavingsOut;
   const tShareGross   = m.reduce((x,r)=>x+num(r['Share']),0);
-  const tShareRefund  = e.filter(r=>expHead(r)==='Share Refund').reduce((x,r)=>x+num(r['Amount']),0);
-  const tNetShare     = tShareGross - tShareRefund;
+  const tShareRefund  = (D.shareRefunds||[]).reduce((x,r)=>x+num(r['RefundAmount']),0);
+  const tNetShare     = tShareGross;
   const tAdmFees      = m.reduce((x,r)=>x+num(r['Admission Fee']),0);
   const tPbFees       = m.reduce((x,r)=>x+num(r['Passbook Fee']),0);
   const tFormFees     = m.reduce((x,r)=>x+num(r['Form Fee']),0);
@@ -2138,8 +2144,8 @@ function renderFund(){
   const _tSavOut=_c.filter(r=>num(r['Savings'])<0).reduce((x,r)=>x+Math.abs(num(r['Savings'])),0);
   const _netSav =_tSavIn-_tSavOut;
   const _tShare =_m.reduce((x,r)=>x+num(r['Share']),0);
-  const _tRefund=_e.filter(r=>expHead(r)==='Share Refund').reduce((x,r)=>x+num(r['Amount']),0);
-  const _netShare=_tShare-_tRefund;
+  const _tRefund=(D.shareRefunds||[]).reduce((x,r)=>x+num(r['RefundAmount']),0);
+  const _netShare=_tShare;
   const _tAdm  =_m.reduce((x,r)=>x+num(r['Admission Fee']),0);
   const _tPb   =_m.reduce((x,r)=>x+num(r['Passbook Fee']),0);
   const _tForm =_m.reduce((x,r)=>x+num(r['Form Fee']),0);
@@ -2151,7 +2157,7 @@ function renderFund(){
     {l:'(+) মালিকের মূলধন',         v:F.initialCap,  c:'#1469c7'},
     {l:'(+) Principal আদায়',         v:_tPri,          c:'#7c3aed'},
     {l:'(+) Service Charge আদায়',    v:_tSCr,          c:'#0f766e'},
-    {l:'(+) Net Share Capital',       v:_netShare,      c:'#0891b2', note:_tRefund>0?'(Share '+cur(_tShare)+' − Refund '+cur(_tRefund)+')':''},
+    {l:'(+) Net Share Capital',       v:_netShare,      c:'#0891b2', note:_tRefund>0?'(Current Share Balance; Refund History '+cur(_tRefund)+')':''},
     {l:'(+) Net Savings',             v:_netSav,        c:'#059669', note:_tSavOut>0?'(জমা '+cur(_tSavIn)+' − উত্তোলন '+cur(_tSavOut)+')':''},
     {l:'(+) Admission Fee',           v:_tAdm,          c:'#0ab5c4'},
     {l:'(+) Passbook Fee',            v:_tPb,           c:'#0ab5c4'},
@@ -2300,6 +2306,8 @@ function openMemModal(id){
   const mem=(D.members||[]).find(m=>String(m['Member ID'])===String(id));
   if(!mem)return;
   const od=getOD(mem);
+  const srHist=(D.shareRefunds||[]).filter(r=>String(r.MemberID)===String(id))
+    .sort((a,b)=>(toDate(b.Date)||new Date(0)).getTime()-(toDate(a.Date)||new Date(0)).getTime());
   const pc=od.pct>=100?'var(--mint)':od.pct>50?'var(--sky)':'var(--amber)';
   const sheetStatus=mem['Loan Status']||'';
   let stBadge='';
@@ -2331,6 +2339,7 @@ function openMemModal(id){
     </div>
     <div class="fin-grid">
       <div class="fin-item" style="--fc:var(--sky)"><div class="fin-val text-blue">${cur(od.tLoan)}</div><div class="fin-lbl">Loan Amount</div></div>
+      <div class="fin-item" style="--fc:var(--teal)"><div class="fin-val" style="color:var(--teal)">${cur(mem.Share)}</div><div class="fin-lbl">Current Share</div></div>
       <div class="fin-item" style="--fc:var(--mint)"><div class="fin-val text-green">${cur(od.tColl)}</div><div class="fin-lbl">মোট জমা</div></div>
       <div class="fin-item" style="--fc:var(--violet)"><div class="fin-val" style="color:var(--violet)">${cur(od.tPri)}</div><div class="fin-lbl">Principal পরিশোধ</div></div>
       <div class="fin-item" style="--fc:var(--teal)"><div class="fin-val" style="color:var(--teal)">${cur(od.tSav)}</div><div class="fin-lbl">Savings জমা</div></div>
@@ -2351,6 +2360,23 @@ function openMemModal(id){
       <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--muted)">
         <span>${od.pCnt} কিস্তি দিয়েছেন</span><span>${od.remInst} কিস্তি বাকি</span>
       </div>
+    </div>
+    <div class="sec-title">Share Refund History (${srHist.length} টি)</div>
+    <div class="table-wrap tw-resp" style="max-height:220px;overflow-y:auto;margin-bottom:var(--gap)">
+      <table>
+        <thead><tr><th>Date</th><th>Refund Amount</th><th>Before Balance</th><th>After Balance</th><th>Reason</th><th>Status</th></tr></thead>
+        <tbody>${srHist.length?srHist.map(r=>`
+          <tr>
+            <td>${fmtDate(r.Date)}</td>
+            <td class="text-red">${cur(r.RefundAmount)}</td>
+            <td>${cur(r.ShareBalanceBefore)}</td>
+            <td class="text-amber">${cur(r.ShareBalanceAfter)}</td>
+            <td style="color:var(--muted)">${r.Reason||''}</td>
+            <td><span class="badge badge-green">${r.Status||'Completed'}</span></td>
+          </tr>`)
+          .join(''):'<tr><td colspan="6"><div class="nd">কোনো Share Refund নেই</div></td></tr>'}
+        </tbody>
+      </table>
     </div>
     <div class="sec-title">কিস্তির ইতিহাস (${od.txCount} টি এন্ট্রি)</div>
     <div class="table-wrap tw-resp" style="max-height:260px;overflow-y:auto">
@@ -2753,6 +2779,39 @@ function fillSavAdj(){
   preview.style.display='block';
   preview.innerHTML=`<strong>${mem.Name||''}</strong> | বর্তমান সঞ্চয় জমা: <strong class="text-green">${cur(od.tSav)}</strong> | বকেয়া লোন (বাকি): <strong class="text-amber">${cur(od.remaining)}</strong>`;
 }
+function toggleShareRefundFields(){
+  const isRefund=document.getElementById('ee_head').value==='Share Refund';
+  ['ee_sr_member_wrap','ee_sr_balance_wrap','ee_sr_amount_wrap','ee_sr_type_wrap','ee_sr_reason_wrap'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.style.display=isRefund?'':'none';
+  });
+  const amountWrap=document.getElementById('ee_amount_wrap');
+  if(amountWrap)amountWrap.style.display=isRefund?'none':'';
+  if(!isRefund){
+    ['ee_sr_member_input','ee_sr_member','ee_sr_balance','ee_sr_amount','ee_sr_reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  }
+}
+function fillShareRefund(){
+  const inputEl=document.getElementById('ee_sr_member_input');
+  if(!inputEl)return;
+  const id=inputEl.value.split(' — ')[0].trim();
+  document.getElementById('ee_sr_member').value=id;
+  const mem=(D.members||[]).find(m=>String(m['Member ID'])===String(id));
+  const balEl=document.getElementById('ee_sr_balance');
+  if(!mem){
+    if(balEl)balEl.value='';
+    return;
+  }
+  const bal=num(mem['Share']);
+  if(balEl)balEl.value=bal;
+  const refundEl=document.getElementById('ee_sr_amount');
+  if(refundEl&&!refundEl.value)refundEl.value=bal||'';
+  syncShareRefundAmount();
+}
+function syncShareRefundAmount(){
+  if(document.getElementById('ee_head').value!=='Share Refund')return;
+  const amt=num(document.getElementById('ee_sr_amount').value);
+  document.getElementById('ee_amt').value=amt||'';
+}
 async function submitSavAdj(){
   const id=document.getElementById('sa_member').value;
   const mem=(D.members||[]).find(m=>String(m['Member ID'])===String(id));
@@ -2804,14 +2863,37 @@ async function submitColl(){
 }
 async function submitExp(){
   const dt=document.getElementById('ee_date').value;if(!dt){showMsg('ee_msg',false,'তারিখ দিন');return;}
-  const amt=num(document.getElementById('ee_amt').value);if(!amt){showMsg('ee_msg',false,'Amount দিন');return;}
+  const head=document.getElementById('ee_head').value;
+  let amt=num(document.getElementById('ee_amt').value);
+  if(head==='Share Refund'){
+    const id=document.getElementById('ee_sr_member').value;
+    const mem=(D.members||[]).find(m=>String(m['Member ID'])===String(id));
+    amt=num(document.getElementById('ee_sr_amount').value);
+    const bal=mem?num(mem['Share']):0;
+    if(!id||!mem){showMsg('ee_msg',false,'সদস্য বেছে নিন');return;}
+    if(bal===null||bal===undefined||isNaN(bal)){showMsg('ee_msg',false,'Share balance নেই');return;}
+    if(!amt||amt<=0){showMsg('ee_msg',false,'Refund Amount সঠিক দিন');return;}
+    if(amt>bal){showMsg('ee_msg',false,'Refund amount বর্তমান Share Balance এর বেশি');return;}
+    document.getElementById('ee_amt').value=amt;
+  }
+  if(!amt||amt<=0){showMsg('ee_msg',false,'Amount দিন');return;}
   const btn=document.querySelector('[onclick="submitExp()"]');if(btn){btn.disabled=true;btn.textContent='সংরক্ষণ হচ্ছে...';}
   try{
-    const data={'Date':dt,'Expense Head':document.getElementById('ee_head').value,'Details':document.getElementById('ee_det').value||'','Amount':amt,'Remarks':document.getElementById('ee_rem').value||''};
+    const data={'Date':dt,'Expense Head':head,'Details':document.getElementById('ee_det').value||'','Amount':amt,'Remarks':document.getElementById('ee_rem').value||''};
+    if(head==='Share Refund'){
+      const id=document.getElementById('ee_sr_member').value;
+      const mem=(D.members||[]).find(m=>String(m['Member ID'])===String(id));
+      data['MemberID']=id;
+      data['MemberName']=mem?mem.Name||'':'';
+      data['RefundType']=document.getElementById('ee_sr_type').value;
+      data['Reason']=document.getElementById('ee_sr_reason').value||'';
+      if(!data.Details)data.Details='Share Refund - '+data.MemberName+' ('+id+')';
+      if(!data.Remarks)data.Remarks=data.Reason;
+    }
     const res=await postData('add_expense',data);showMsg('ee_msg',res.success,res.message||'Error');
     if(res.success){
       if(!D.expenses)D.expenses=[];D.expenses.push(data);
-      ['ee_amt','ee_det','ee_rem'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+      ['ee_amt','ee_det','ee_rem','ee_sr_member_input','ee_sr_member','ee_sr_balance','ee_sr_amount','ee_sr_reason'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
       renderAll();setTimeout(()=>{loadData(false);},2000);
     }
   }catch(err){showMsg('ee_msg',false,'লোকাল এরর: '+err.message);}
@@ -3108,9 +3190,13 @@ function fillRenewal(){
 
 function toggleRenewalFees(){
   var returned=document.getElementById('rn_share_returned').value==='yes';
-  ['rn_share_wrap','rn_adm_wrap','rn_pb_wrap','rn_ff_wrap'].forEach(function(id){
+  ['rn_share_wrap','rn_adm_wrap'].forEach(function(id){
     var el=document.getElementById(id);
     if(el)el.style.display=returned?'':'none';
+  });
+  ['rn_pb_wrap','rn_ff_wrap'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.style.display='';
   });
   calcRenewal();
 }
@@ -3124,8 +3210,8 @@ function calcRenewal(){
 
   var share=returned?num(document.getElementById('rn_share').value)||0:0;
   var adm=returned?num(document.getElementById('rn_adm').value)||0:0;
-  var pb=returned?num(document.getElementById('rn_pb').value)||0:0;
-  var ff=returned?num(document.getElementById('rn_ff').value)||0:0;
+  var pb=num(document.getElementById('rn_pb').value)||0;
+  var ff=num(document.getElementById('rn_ff').value)||0;
 
   var totalPayable=loan+svc;
   var totalColl=loan+svc+sav;
@@ -3137,7 +3223,7 @@ function calcRenewal(){
     preview.style.display='block';
     var feeNote=returned
       ?'শেয়ার: '+cur(share)+' | Admission: '+cur(adm)+' | Passbook: '+cur(pb)+' | Form: '+cur(ff)
-      :'শেয়ার ফেরত নেননি — ফি মওকুফ ✓';
+      :'শেয়ার ফেরত নেননি — Share ও Admission মওকুফ | Passbook: '+cur(pb)+' | Form: '+cur(ff);
     preview.innerHTML='নতুন Loan: <strong>'+cur(loan)+'</strong> | S.Charge: <strong>'+cur(svc)+'</strong> | Savings: <strong>'+cur(sav)+'</strong> | মোট পাওনা: <strong>'+cur(totalPayable)+'</strong> | Installment: <strong>'+cur(inst)+'</strong>/কিস্তি<br><span style="font-size:12px;color:var(--muted)">'+feeNote+'</span>';
   } else {
     preview.style.display='none';
@@ -3163,13 +3249,13 @@ async function submitRenewal(){
   var totalColl=loan+svc+sav;
   var inst=term>0?Math.ceil(totalColl/term):0;
 
-  // শেয়ার ফেরত নিলে নতুন ফি, না নিলে শূন্য
-  var share=returned?(num(document.getElementById('rn_share').value)||100):0;
+  // শেয়ার ফেরত না নিলে আগের share balance থাকবে; শুধু নতুন Share ও Admission charge হবে না।
+  var share=returned?(num(document.getElementById('rn_share').value)||100):(num(mem['Share'])||0);
   var adm  =returned?(num(document.getElementById('rn_adm').value)||50):0;
-  var pb   =returned?(num(document.getElementById('rn_pb').value)||30):0;
-  var ff   =returned?(num(document.getElementById('rn_ff').value)||120):0;
+  var pb   =num(document.getElementById('rn_pb').value)||30;
+  var ff   =num(document.getElementById('rn_ff').value)||120;
 
-  if(!confirm((returned?'শেয়ার ফেরত নেওয়া হয়েছে — সব ফি সহ। ':'শেয়ার ফেরত নেননি — ফি মওকুফ। ')+'সদস্য: '+mem.Name+' এর Loan নবায়ন করবেন?')){return;}
+  if(!confirm((returned?'শেয়ার ফেরত নেওয়া হয়েছে — সব ফি সহ। ':'শেয়ার আছে — শুধু Share ও Admission মওকুফ। ')+'সদস্য: '+mem.Name+' এর Loan নবায়ন করবেন?')){return;}
 
   var btn=document.querySelector('[onclick="submitRenewal()"]');
   if(btn){btn.disabled=true;btn.textContent='নবায়ন হচ্ছে...';}
@@ -3238,6 +3324,7 @@ function showFundTab(name){
 // DOM ready হলে init করি
 function _init(){
   checkSess();
+  toggleShareRefundFields();
   setInterval(function(){if(sessionStorage.getItem(SK)){loadData(false);}},5*60*1000);
 }
 if(document.readyState==='loading'){
